@@ -1,0 +1,91 @@
+/* ---------------------------------------------------------------
+   Design tokens. Everything visual and temporal flows from here.
+   Components must reference these, never hard-coded hex / px / ms.
+   --------------------------------------------------------------- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+:root {
+  /* ---- Color ---- */
+  /* Warm-neutral base with a single confident accent.
+     This is the ONE part you should make yours (see README). */
+  --color-bg:            #faf8f3; /* warm paper */
+  --color-surface:       #ffffff;
+  --color-text:          #16150f; /* warm near-black ink */
+  --color-muted:         #6b6862;
+  --color-border:        #e6e2d8;
+  --color-accent:        #e54d2e; /* saturated red-orange */
+  --color-accent-text:   #ffffff; /* text on accent */
+  --color-primary:       #3d6b53; /* deep sage — earthy complement */
+  --color-secondary:     #8b4e2f; /* burnt sienna — warm brown triad */
+  --color-track-off:     #d9d4c8;
+
+  /* ---- Spacing scale (4px base) ---- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-8: 48px;
+
+  /* ---- Radius ---- */
+  --radius-xs:   2px;
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   16px;
+  --radius-full: 999px;
+
+  /* ---- Type ---- */
+  /* Swap these for the typefaces you choose. Placeholders only. */
+  --font-sans: "General Sans", system-ui, sans-serif;
+  --font-mono: "Berkeley Mono", ui-monospace, monospace;
+  --text-sm:  14px;
+  --text-base: 16px;
+  --text-lg:  20px;
+
+  /* ---- Motion ---- */
+  /* Durations: UI motion is quick. Most interactions live at "base". */
+  --duration-fast: 150ms;
+  --duration-base: 220ms;
+  --duration-slow: 360ms;
+
+  /* Easings: ease-out for things entering, ease-in for things leaving.
+     The JS spring presets (motion.ts) are preferred for anything
+     physical (toggles, drags, layout). These curves are for CSS-only
+     fades / color transitions. */
+  --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in:     cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* ---- Skeleton shimmer ---- */
+:root {
+  --skeleton-base:  color-mix(in srgb, var(--color-border) 90%, var(--color-surface));
+  --skeleton-shine: color-mix(in srgb, var(--color-surface) 70%, var(--color-border));
+}
+
+@keyframes skeleton-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+/* Respect the user's system setting. Components should also handle this
+   in JS (see useMotionSafe in motion.ts), but this covers CSS paths. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-base: 0ms;
+    --duration-slow: 0ms;
+  }
+}

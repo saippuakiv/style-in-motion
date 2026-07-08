@@ -1,0 +1,44 @@
+/* ---------------------------------------------------------------
+   Shell tokens — the app chrome: sidebar, headings, labels, borders.
+   Static and independent of generated design tokens. Preview
+   components must never reference these; the shell must never
+   reference --color-* or other generated tokens.
+   --------------------------------------------------------------- */
+
+:root {
+  /* ---- Layout ---- */
+  --shell-panel-width: 360px;
+
+  /* ---- Surfaces ---- */
+  --shell-bg: #faf8f3;
+  --shell-bg-left: #fff7ed;
+  --shell-bg-right: #fefcfb;
+  --shell-surface: rgba(0, 0, 0, 0.03);
+  --shell-border: #e6e2d8;
+
+  /* ---- Text ---- */
+  --shell-text: #16150f;
+  --shell-text-muted: #6b6862;
+  --shell-text-dim: #a09b91;
+
+  /* ---- Accent ---- */
+  --shell-accent: #e54d2e;
+  --shell-accent-fg: #ffffff;
+  --shell-error: #dc2626;
+  --shell-disabled: #d9d4c8;
+
+  /* ---- Typography ---- */
+  --shell-font: 'DM Sans', system-ui, sans-serif;
+  --shell-font-mono: ui-monospace, monospace;
+
+  /* ---- Bezier editor ---- */
+  --shell-ink: #2c2520;
+  --shell-grid: #e8e3da;
+  --shell-handle: #b0a99e;
+  --shell-track: #c8c1b6;
+  --shell-track-active: #a8a196;
+
+  /* ---- Radii ---- */
+  --shell-radius: 8px;
+  --shell-radius-sm: 4px;
+}
