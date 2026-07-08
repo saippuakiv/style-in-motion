@@ -94,6 +94,17 @@ export function ToastPreview() {
     }
   }, [staggerDelay, startTimer]);
 
+  /* ── Autoplay: fire 3 toasts on mount via the same path as the button ── */
+  const addToastRef = useRef(addToast);
+  addToastRef.current = addToast;
+
+  useEffect(() => {
+    const handles = [0, 600, 1200].map((delay) =>
+      setTimeout(() => addToastRef.current(), delay),
+    );
+    return () => handles.forEach(clearTimeout);
+  }, []);
+
   /* Clean up timers for evicted toasts */
   useEffect(() => {
     const active = new Set(toasts.map((t) => t.id));
