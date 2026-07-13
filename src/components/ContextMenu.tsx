@@ -9,6 +9,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useMotionTokens } from '../lib/MotionTokensContext';
 
 /* ── Constants ── */
 
@@ -24,11 +25,14 @@ const SUBMENU_H = VPAD * 2 + SECOND_LEVEL.length * ITEM_H; // 120
 const TRANSLATE_IDX = 2;
 const SUB_Y_OFFSET = VPAD + TRANSLATE_IDX * ITEM_H; // 60
 
-// functional-primary: motion stays constant regardless of style tokens
-const MENU_SPRING = { type: 'spring', stiffness: 400, damping: 30 } as const;
-const INIT_DELAY_MS = 800;
-const HOLD_MENU_MS = 1500;
-const HOLD_SUB_MS = 1500;
+// functional-primary: TIMING stays constant regardless of style tokens —
+// only entrance curve (bezier) and spring texture adapt.
+const INIT_DELAY_MS    = 800;  // pause before menu opens
+const STEP_MS          = 160;  // between first-level highlight steps (fast, even)
+const HOVER_INTENT_MS  = 400;  // pause after landing on submenu item before it opens
+const SUB_STEP_MS      = 180;  // between sub-item highlight steps
+const HOLD_AFTER_MS    = 600;  // hold after last sub-item before close
+const CLOSE_GAP_MS     = 180;  // gap between submenu exit and menu exit
 
 interface Pos {
   x: number;
@@ -118,9 +122,19 @@ export interface ContextMenuPreviewProps {
 }
 
 export function ContextMenuPreview({ onReplayReady }: ContextMenuPreviewProps) {
+  const { bezier, spring } = useMotionTokens();
+  // responsiveness floor — functional-primary must always feel instant, never loose
+  const s = Math.max(300, spring.stiffness);
+  const d = Math.max(spring.damping, 0.9 * 2 * Math.sqrt(s * spring.mass));
+  // Entrance character follows bezier; duration stays hardcoded (functional-primary)
+  const menuTransition = { type: 'tween' as const, duration: 0.12, ease: bezier };
+  // Entrance open spring — texture adapts to style, responsiveness floor applied
+  const menuSpring = { type: 'spring' as const, stiffness: s, damping: d, mass: spring.mass };
+
   const [menuPos, setMenuPos] = useState<Pos | null>(null);
   const [activeItem, setActiveItem] = useState<string | null>(null);
   const [activeSubItem, setActiveSubItem] = useState<string | null>(null);
+  const [submenuOpen, setSubmenuOpen] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -135,6 +149,7 @@ export function ContextMenuPreview({ onReplayReady }: ContextMenuPreviewProps) {
     setMenuPos(null);
     setActiveItem(null);
     setActiveSubItem(null);
+    setSubmenuOpen(false);
   }, []);
 
   /* Place menu clamped to container bounds */
@@ -147,6 +162,7 @@ export function ContextMenuPreview({ onReplayReady }: ContextMenuPreviewProps) {
       y: clamp(rawY, 4, height - MENU_H - 4),
     });
     setActiveItem(null);
+    setSubmenuOpen(false);
   }, []);
 
   const startAutoplay = useCallback(() => {
@@ -156,25 +172,44 @@ export function ContextMenuPreview({ onReplayReady }: ContextMenuPreviewProps) {
     const mx = width * 0.35;
     const my = height * 0.35;
 
-    timers.current = [
+    // Timeline: open → step Explain → step Summarize → step Translate (hover-intent) →
+    //           submenu opens → step English → step Chinese → hold → submenu closes → menu closes
+    let t = INIT_DELAY_MS;
+
+    const push = (fn: () => void, delay: number) => {
+      t += delay;
+      timers.current.push(
+        setTimeout(() => {
+          if (userTookOver.current) return;
+          fn();
+        }, t),
+      );
+    };
+
+    timers.current = [];
+
+    // 1. Open menu
+    timers.current.push(
       setTimeout(() => {
         if (userTookOver.current) return;
         placeMenu(mx, my);
-      }, INIT_DELAY_MS),
+      }, t),
+    );
 
-      setTimeout(() => {
-        if (userTookOver.current) return;
-        setActiveItem('Translate');
-      }, INIT_DELAY_MS + HOLD_MENU_MS),
+    // 2. Step through first-level items
+    push(() => setActiveItem('Explain'), STEP_MS);
+    push(() => setActiveItem('Summarize'), STEP_MS);
+    // 3. Land on Translate — hover-intent pause before submenu opens
+    push(() => setActiveItem('Translate'), STEP_MS);
+    push(() => setSubmenuOpen(true), HOVER_INTENT_MS);
 
-      setTimeout(
-        () => {
-          if (userTookOver.current) return;
-          closeMenu();
-        },
-        INIT_DELAY_MS + HOLD_MENU_MS + HOLD_SUB_MS,
-      ),
-    ];
+    // 4. Step through submenu items
+    push(() => setActiveSubItem('English'), SUB_STEP_MS);
+    push(() => setActiveSubItem('Chinese'), SUB_STEP_MS);
+
+    // 5. Hold, then close submenu, then close menu
+    push(() => setSubmenuOpen(false), HOLD_AFTER_MS);
+    push(() => closeMenu(), CLOSE_GAP_MS);
   }, [placeMenu, closeMenu]);
 
   useEffect(() => {
@@ -209,7 +244,7 @@ export function ContextMenuPreview({ onReplayReady }: ContextMenuPreviewProps) {
   }, [menuPos, closeMenu]);
 
   /* Submenu position: right of first menu unless that would overflow, then left */
-  const showSubmenu = activeItem === 'Translate' && menuPos != null;
+  const showSubmenu = submenuOpen && menuPos != null;
   const submenuPos: Pos | null = (() => {
     if (!menuPos || !containerRef.current) return null;
     const { width, height } = containerRef.current.getBoundingClientRect();
@@ -272,8 +307,8 @@ export function ContextMenuPreview({ onReplayReady }: ContextMenuPreviewProps) {
           it communicates system state,{' '}
           <span
             style={{
-              background: 'rgba(250, 204, 21, 0.4)',
-              borderRadius: 2,
+              background: 'color-mix(in srgb, var(--color-accent) 20%, transparent)',
+              borderRadius: 'var(--radius-xs)',
               padding: '1px 0',
             }}
           >
@@ -289,9 +324,8 @@ export function ContextMenuPreview({ onReplayReady }: ContextMenuPreviewProps) {
           <motion.div
             key='ctx-menu'
             initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={MENU_SPRING}
+            animate={{ opacity: 1, scale: 1, transition: menuSpring }}
+            exit={{ opacity: 0, scale: 0.95, transition: menuTransition }}
             style={{
               position: 'absolute',
               top: menuPos.y,
@@ -312,6 +346,7 @@ export function ContextMenuPreview({ onReplayReady }: ContextMenuPreviewProps) {
                     userTookOver.current = true;
                     clearTimers();
                     setActiveItem(item);
+                    setSubmenuOpen(item === 'Translate');
                   }}
                   onClick={() => {
                     if (item !== 'Translate') closeMenu();
@@ -329,9 +364,8 @@ export function ContextMenuPreview({ onReplayReady }: ContextMenuPreviewProps) {
           <motion.div
             key='ctx-submenu'
             initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={MENU_SPRING}
+            animate={{ opacity: 1, scale: 1, transition: menuSpring }}
+            exit={{ opacity: 0, scale: 0.95, transition: menuTransition }}
             style={{
               position: 'absolute',
               top: submenuPos.y,

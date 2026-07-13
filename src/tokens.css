@@ -50,9 +50,10 @@ body {
   /* Swap these for the typefaces you choose. Placeholders only. */
   --font-sans: "General Sans", system-ui, sans-serif;
   --font-mono: "Berkeley Mono", ui-monospace, monospace;
-  --text-sm:  14px;
-  --text-base: 16px;
-  --text-lg:  20px;
+  --text-xs:   calc(12px * var(--font-size-scale, 1));
+  --text-sm:   calc(14px * var(--font-size-scale, 1));
+  --text-base: calc(16px * var(--font-size-scale, 1));
+  --text-lg:   calc(20px * var(--font-size-scale, 1));
 
   /* ---- Motion ---- */
   /* Durations: UI motion is quick. Most interactions live at "base". */

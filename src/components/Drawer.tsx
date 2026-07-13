@@ -106,8 +106,11 @@ function StatusIcon({ status }: { status: Status }) {
 /* ── Main component ── */
 
 export function DrawerPreview() {
-  const { spring: sp } = useMotionTokens();
-  const x = useMotionValue(DRAWER_WIDTH); // starts off-screen right
+  const { scaledSpring, entranceDistance, durationScale } = useMotionTokens();
+  // Start beyond the fully-collapsed position by entranceDistance so the
+  // entrance travel is token-driven rather than fixed to the drawer width.
+  const startX = COLLAPSED_X + entranceDistance;
+  const x = useMotionValue(startX);
 
   const snapTo = useCallback(
     (target: number) => animate(x, target, SNAP_SPRING),
@@ -118,13 +121,13 @@ export function DrawerPreview() {
   useEffect(() => {
     const entranceSpring = {
       type: 'spring' as const,
-      stiffness: sp.stiffness,
-      damping: sp.damping,
-      mass: sp.mass,
+      stiffness: scaledSpring.stiffness,
+      damping: scaledSpring.damping,
+      mass: scaledSpring.mass,
     };
-    const t = setTimeout(() => animate(x, 0, entranceSpring), 400);
+    const t = setTimeout(() => animate(x, 0, entranceSpring), 400 * durationScale);
     return () => clearTimeout(t);
-  }, [x, sp.stiffness, sp.damping, sp.mass]);
+  }, [x, scaledSpring.stiffness, scaledSpring.damping, scaledSpring.mass, entranceDistance, durationScale]);
 
   const handleDragEnd = useCallback(
     (_: PointerEvent, info: PanInfo) => {
@@ -256,7 +259,7 @@ export function DrawerPreview() {
                 borderRadius: 11,
                 cursor: 'pointer',
                 color: 'var(--color-muted)',
-                fontSize: 14,
+                fontSize: 'var(--text-sm)',
                 lineHeight: 1,
                 flexShrink: 0,
               }}

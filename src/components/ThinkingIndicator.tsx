@@ -3,13 +3,19 @@
 /* ---------------------------------------------------------------
    ThinkingIndicator
    Represents the model actively working. Three color blocks
-   breathe independently (staggered) to evoke a palette being
-   considered; cycling text phrases name the internal state with
-   a per-character brightness wave that sweeps left→right→left.
+   animate per thinkingPosture; cycling text phrases name the
+   internal state with a per-character brightness wave.
 
    Exception to the autoplay-once rule: thinking is a persistent
    state with no natural end point. The blocks and text cycle
    indefinitely to signal ongoing activity.
+
+   Three postures (all tweens — no springs anywhere in this file):
+   - breathe: slow scale+opacity oscillation; stillness with luminance.
+   - pulse:   sequential opacity lighting at strictly even intervals;
+              zero displacement, zero scale change.
+   - bounce:  blocks physically hop on y; the only posture with
+              displacement.
    --------------------------------------------------------------- */
 
 import { useState, useEffect, useRef } from 'react';
@@ -27,8 +33,12 @@ const BLOCK_COLORS = [
 const BLOCK_SIZE = 8;
 const BLOCK_GAP = 6;
 
+// deliberate: loops have no entrance; amplitude is a posture constant,
+// not an entranceDistance consumer
+const BOUNCE_AMPLITUDE = BLOCK_SIZE * 0.4;
+
 export function ThinkingIndicator() {
-  const { bezier, durationScale, staggerDelay } = useMotionTokens();
+  const { bezier, durationScale, staggerDelay, thinkingPosture } = useMotionTokens();
   const reduce = useReducedMotion();
   const [index, setIndex] = useState(0);
   const [waveIdx, setWaveIdx] = useState(0);
@@ -125,28 +135,71 @@ export function ThinkingIndicator() {
       style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}
     >
       {/* Color blocks — loops indefinitely, see file header comment.
-          Each block has a fixed phase offset so they never pulse in unison. */}
+          Each block has a fixed phase offset so they never animate in unison. */}
       <div style={{ display: 'flex', gap: BLOCK_GAP }}>
-        {BLOCK_COLORS.map((color, i) => (
-          <motion.div
-            key={i}
-            style={{
-              width: BLOCK_SIZE,
-              height: BLOCK_SIZE,
-              borderRadius: 'var(--radius-xs)',
-              background: color,
-            }}
-            initial={{ scale: 1, opacity: 0.4 }}
-            animate={{ scale: 1.2, opacity: 1 }}
-            transition={{
-              duration: halfCycle,
-              ease,
-              repeat: Infinity,
-              repeatType: 'mirror',
-              delay: i * staggerDelay * 2,
-            }}
-          />
-        ))}
+        {BLOCK_COLORS.map((color, i) => {
+          const blockDelay = i * staggerDelay * 2;
+          const blockStyle = {
+            width: BLOCK_SIZE,
+            height: BLOCK_SIZE,
+            borderRadius: 'var(--radius-xs)' as const,
+            background: color,
+          };
+
+          if (thinkingPosture === 'pulse') {
+            return (
+              <motion.div
+                key={i}
+                style={blockStyle}
+                initial={{ opacity: 0.3 }}
+                animate={{ opacity: [0.3, 1, 0.3] }}
+                transition={{
+                  duration: cycleDuration,
+                  times: [0, 0.4, 1],
+                  ease,
+                  repeat: Infinity,
+                  repeatType: 'loop',
+                  delay: blockDelay,
+                }}
+              />
+            );
+          }
+
+          if (thinkingPosture === 'bounce') {
+            return (
+              <motion.div
+                key={i}
+                style={blockStyle}
+                initial={{ y: 0 }}
+                animate={{ y: -BOUNCE_AMPLITUDE }}
+                transition={{
+                  duration: halfCycle,
+                  ease,
+                  repeat: Infinity,
+                  repeatType: 'mirror',
+                  delay: blockDelay,
+                }}
+              />
+            );
+          }
+
+          // breathe: scale amplitude reduced to 1.06 — luminance with stillness, not a throb
+          return (
+            <motion.div
+              key={i}
+              style={blockStyle}
+              initial={{ scale: 1, opacity: 0.4 }}
+              animate={{ scale: 1.06, opacity: 1 }}
+              transition={{
+                duration: halfCycle,
+                ease,
+                repeat: Infinity,
+                repeatType: 'mirror',
+                delay: blockDelay,
+              }}
+            />
+          );
+        })}
       </div>
 
       {/* Text area: fixed width prevents layout shift across phrase lengths.

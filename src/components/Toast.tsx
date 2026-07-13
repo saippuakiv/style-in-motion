@@ -36,7 +36,7 @@ const AUTO_DISMISS_MS = 4000;
 /* ── Component ── */
 
 export function ToastPreview() {
-  const { spring: sp, bezier, durationScale, entranceDistance, staggerDelay } =
+  const { scaledSpring, bezier, durationScale, entranceDistance, staggerDelay } =
     useMotionTokens();
   const safe = useMotionSafe();
 
@@ -192,9 +192,9 @@ export function ToastPreview() {
                   transition: safe({
                     x: {
                       type: 'spring',
-                      stiffness: sp.stiffness,
-                      damping: sp.damping,
-                      mass: sp.mass,
+                      stiffness: scaledSpring.stiffness,
+                      damping: scaledSpring.damping,
+                      mass: scaledSpring.mass,
                       delay: toast.enterDelay,
                     },
                     opacity: {
@@ -204,9 +204,9 @@ export function ToastPreview() {
                     },
                     layout: {
                       type: 'spring',
-                      stiffness: sp.stiffness,
-                      damping: sp.damping,
-                      mass: sp.mass,
+                      stiffness: scaledSpring.stiffness,
+                      damping: scaledSpring.damping,
+                      mass: scaledSpring.mass,
                     },
                   }),
                 },
@@ -242,7 +242,7 @@ export function ToastPreview() {
               <span
                 style={{
                   flex: 1,
-                  fontSize: 12,
+                  fontSize: 'var(--text-xs)',
                   color: 'var(--color-text)',
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',

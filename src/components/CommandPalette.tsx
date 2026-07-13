@@ -9,6 +9,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useMotionTokens } from '../lib/MotionTokensContext';
 
 const GROUPS = [
   {
@@ -33,14 +34,8 @@ const BASE_TYPE_MS = 135;
 const JITTER_MS = 20;
 const PAUSE_MS = 1500;
 
-// functional-primary: motion stays constant regardless of style tokens
-const PALETTE_SPRING = { type: 'spring', stiffness: 400, damping: 30 } as const;
-const LAYOUT_SPRING = {
-  type: 'spring',
-  stiffness: 450,
-  damping: 32,
-  mass: 1,
-} as const;
+// functional-primary: TIMING stays constant regardless of style tokens —
+// only entrance curve (bezier) and spring texture adapt.
 /* 80 ms max for item enter/exit opacity */
 const OPACITY_FAST = { duration: 0.08 } as const;
 /* Group labels pop in/out with zero delay */
@@ -53,6 +48,14 @@ export interface CommandPalettePreviewProps {
 export function CommandPalettePreview({
   onReplayReady,
 }: CommandPalettePreviewProps) {
+  const { bezier, spring } = useMotionTokens();
+  // responsiveness floor — functional-primary must always feel instant, never loose
+  const s = Math.max(300, spring.stiffness);
+  const d = Math.max(spring.damping, 0.9 * 2 * Math.sqrt(s * spring.mass));
+  // Entrance character follows bezier; duration stays hardcoded (functional-primary)
+  const paletteTransition = { type: 'tween' as const, duration: 0.15, ease: bezier };
+  const highlightSpring = { type: 'spring' as const, stiffness: s, damping: d, mass: spring.mass };
+
   const [open, setOpen] = useState(true);
   const [query, setQuery] = useState('');
   const [selectedIdx, setSelectedIdx] = useState(0);
@@ -199,7 +202,7 @@ export function CommandPalettePreview({
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              transition={PALETTE_SPRING}
+              transition={paletteTransition}
               style={{
                 background: 'var(--color-surface)',
                 border: '1px solid var(--color-border)',
@@ -215,7 +218,6 @@ export function CommandPalettePreview({
                 handleUserTakeover();
               }}
             >
-              {/* Input */}
               <input
                 ref={inputRef}
                 type='text'
@@ -261,7 +263,7 @@ export function CommandPalettePreview({
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       transition={{
-                        layout: LAYOUT_SPRING,
+                        layout: highlightSpring,
                         opacity: OPACITY_INSTANT,
                       }}
                       style={{
@@ -270,7 +272,7 @@ export function CommandPalettePreview({
                         fontWeight: 600,
                         letterSpacing: '0.08em',
                         textTransform: 'uppercase' as const,
-                        color: 'rgb(198, 198, 198)',
+                        color: 'var(--color-muted)',
                         fontFamily: 'var(--font-sans)',
                         userSelect: 'none' as const,
                       }}
@@ -290,7 +292,7 @@ export function CommandPalettePreview({
                           animate={{ opacity: 1 }}
                           exit={{ opacity: 0 }}
                           transition={{
-                            layout: LAYOUT_SPRING,
+                            layout: highlightSpring,
                             opacity: OPACITY_FAST,
                           }}
                           onMouseEnter={() => setSelectedIdx(flatIdx)}

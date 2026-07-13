@@ -14,6 +14,10 @@ import { motion } from 'framer-motion';
 import { useMotionTokens } from '../lib/MotionTokensContext';
 
 const BASE_FADE = 0.4;   // seconds, scaled by durationScale
+// deliberate: title→body→tag is a CONTENT READING rhythm (~800ms scale),
+// not list offsetting. staggerDelay (~90ms scale) is the wrong time scale
+// here — wiring it in would repeat the Streaming Text category error.
+// This constant is scaled by durationScale only.
 const BASE_STAGGER = 800; // ms, scaled by durationScale
 
 /* minHeight of each block's container (accommodates both skeleton and content) */
@@ -55,19 +59,23 @@ function Block({
   revealed,
   minHeight,
   fadeDuration,
+  ease,
+  liftPx,
 }: {
   skeleton: React.ReactNode;
   content: React.ReactNode;
   revealed: boolean;
   minHeight: number;
   fadeDuration: number;
+  ease: number[];
+  liftPx: number;
 }) {
   return (
     <div style={{ position: 'relative', minHeight }}>
       {/* Skeleton — fades out when revealed */}
       <motion.div
         animate={{ opacity: revealed ? 0 : 1 }}
-        transition={{ duration: fadeDuration }}
+        transition={{ duration: fadeDuration, ease }}
         style={{
           position: 'absolute',
           inset: 0,
@@ -79,11 +87,11 @@ function Block({
         {skeleton}
       </motion.div>
 
-      {/* Content — fades in when revealed */}
+      {/* Content — fades in and lifts when revealed */}
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: revealed ? 1 : 0 }}
-        transition={{ duration: fadeDuration }}
+        initial={{ opacity: 0, y: liftPx }}
+        animate={{ opacity: revealed ? 1 : 0, y: revealed ? 0 : liftPx }}
+        transition={{ duration: fadeDuration, ease }}
         style={{
           position: 'absolute',
           inset: 0,
@@ -103,9 +111,14 @@ export interface SkeletonCardProps {
 }
 
 export function SkeletonCard({ onReplayReady }: SkeletonCardProps) {
-  const { durationScale } = useMotionTokens();
+  const { durationScale, bezier, entranceDistance } = useMotionTokens();
   const fadeDuration = BASE_FADE * durationScale;
   const stagger = BASE_STAGGER * durationScale;
+  const ease = bezier as unknown as number[];
+  // entranceDistance is a panel-scale token; skeleton blocks are card-scale.
+  // Map to a card-appropriate range, same normalization as Streaming Text.
+  const MAX_LIFT_PX = 10;
+  const liftPx = Math.min(entranceDistance / 80, 1) * MAX_LIFT_PX;
 
   const [titleRevealed, setTitleRevealed] = useState(false);
   const [bodyRevealed, setBodyRevealed] = useState(false);
@@ -162,6 +175,8 @@ export function SkeletonCard({ onReplayReady }: SkeletonCardProps) {
         revealed={titleRevealed}
         minHeight={H_TITLE}
         fadeDuration={fadeDuration}
+        ease={ease}
+        liftPx={liftPx}
         skeleton={<SkeletonBar width='65%' height={H_TITLE} />}
         content={
           <div
@@ -183,6 +198,8 @@ export function SkeletonCard({ onReplayReady }: SkeletonCardProps) {
         revealed={bodyRevealed}
         minHeight={H_BODY}
         fadeDuration={fadeDuration}
+        ease={ease}
+        liftPx={liftPx}
         skeleton={
           <div
             style={{
@@ -218,6 +235,8 @@ export function SkeletonCard({ onReplayReady }: SkeletonCardProps) {
         revealed={tagRevealed}
         minHeight={H_TAG}
         fadeDuration={fadeDuration}
+        ease={ease}
+        liftPx={liftPx}
         skeleton={<SkeletonBar width={96} height={H_TAG} pill />}
         content={
           <span

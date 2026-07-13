@@ -1,11 +1,11 @@
-import type { Metadata } from "next";
-import "@/tokens.css";
-import "@/shell.css";
+import type { Metadata } from 'next';
+import '../tokens.css';
+import '../shell.css';
 
 export const metadata: Metadata = {
-  title: "motion-ui",
+  title: 'motion-ui',
   description:
-    "A motion-first component library with AI-configurable design tokens",
+    'A motion-first component library with AI-configurable design tokens',
 };
 
 export default function RootLayout({
@@ -14,7 +14,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang='en'>
       <body>{children}</body>
     </html>
   );

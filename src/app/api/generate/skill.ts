@@ -54,6 +54,10 @@ With it, the output has an author.
   style decision, not a filler value.
 - **Luxury / classical → serif, italic, retro/classical letterforms.** Express
   preciousness quietly through the letterforms, not through metallic color.
+- **Compensate for x-height.** Classical/display serifs (Cormorant, EB Garamond,
+  Playfair) render visually smaller at the same px size. When choosing a
+  small-x-height typeface, set fontSizeScale to 1.05–1.15. For large-x-height
+  faces, 0.95–1.0. Neutral faces: 1.
 
 ## 3. Motion — two layers, style adjusts only one
 
@@ -82,24 +86,44 @@ even and predictable — the precision *is* the aesthetic.
   character, but must not drag them into sluggishness.
 - \`durationScale\`, \`entranceDistance\`, \`staggerDelay\`, \`springMass\` → the expressive
   layer. This is what a style should move the most.
+- \`entranceDistance\` and \`durationScale\` are **independent axes**. What the eye
+  perceives is their ratio — velocity = distance ÷ duration:
+  - Calm / serene / luxurious quality: LARGE distance + LONG duration → low velocity.
+    An element drifting slowly across real space. **Do not use small distance for calm.**
+    Short distance + long duration reads as hesitant — something stuck, slowly brightening
+    in place. That is a failure mode, not composure.
+  - Mechanical / precise quality: SHORT distance + SHORT duration → high velocity, short throw.
+  - High-energy / lively quality: LARGE distance + SHORT duration → high velocity.
 
 ## 4. Component classification
 
 Not every component should be re-styled by motion. Which layer dominates a component
-decides whether its motion is fixed or open.
-
-**Functional-primary** — motion holds the functional standard, stays constant and
-responsive regardless of style:
-
+decides **how much** of the motion tokens it consumes.
+ 
+**Functional-primary** — components opened and used at high frequency, where any
+perceived delay is a real cost. They consume motion tokens **selectively**:
+style may change their *texture*, never their *speed*.
+ 
 - Command Palette
-- Toast
+- Toast (trigger/response path)
 - Context Menu
-
-**Expression-primary** — motion is open to style-driven expressive change:
-
+Consumption rule:
+- MAY consume: \`bezier\` (entrance character), \`spring\` stiffness/damping
+  (highlight/follow feel) — with a responsiveness floor (e.g. stiffness never
+  below ~300) so they always feel instant.
+- MUST NOT consume: \`durationScale\`, \`staggerDelay\`, \`entranceDistance\`.
+  Durations stay hardcoded in the fast range; list items never stagger —
+  staggering delays the moment all content is readable, which trades function
+  for expression.
+**Expression-primary** — motion is fully open to style-driven expressive change,
+consuming all tokens:
+ 
 - Streaming Text
 - Thinking Indicator
 - Skeleton → Content
+- Drawer
+- Multi-step Dialog
+- Toast (entrance orchestration)
 
 ---
 
@@ -108,21 +132,26 @@ responsive regardless of style:
 **luxury**
 No black background. Low-saturation, warm/deep tones carrying the "material" of luxury.
 Classical serif or italic type as the main expressive vehicle. Expressive motion is slow
-and from-composure: small entrance distance, overshoot near zero — precious things do not
-bounce.
+and from-composure: large entrance distance + long duration = low velocity, drifting in
+from real space. Overshoot near zero — precious things do not bounce. Streaming text
+reveals by phrase — slow fades with a visible, unhurried lift. Thinking indicator:
+breathe — only luminance moves, no displacement, no sequence. Stillness is the luxury.
 
 **playful**
 A layered, rich palette — not a single bright accent on white. Restrained, not chaotic:
 one or two precise moments of energy rather than clashing color and bounce everywhere.
 Expressive motion carries some mass and visible rebound, but kept precise by the
-minimalist filter.
+minimalist filter. Streaming text reveals by word with a light, precise spring.
+Thinking indicator: bounce — dots physically hop. One clear, physical moment of energy.
 
 **brutalist**
 Not a black background. Black text on white, dark "pen-line" borders — a hand-drawn,
 precise line quality. Sans-serif is fine; sharp corners are fine. Expressive motion is
 fast and crisp with minimal rebound. If a mechanical / typewriter reveal is used
 (e.g. Streaming Text), the character timing must be strictly even so it reads as
-precision, not lag.
+precision, not lag. Streaming text reveals by character at strictly even intervals.
+Thinking indicator: pulse — blocks light up one at a time at strictly even intervals.
+Zero displacement, zero scale. Sequence reads as intent.
 
 ---
 
@@ -136,13 +165,16 @@ Return **ONLY valid JSON** — no prose, no markdown fences, no explanation. Exa
   "primary": "hex", "secondary": "hex",
   "radiusSm": "Npx", "radiusMd": "Npx", "radiusLg": "Npx",
   "fontSans": "Google Fonts family name",
+  "fontSizeScale": 1,
   "springStiffness": 300,
   "springDamping": 26,
   "springMass": 1,
   "bezier": [0.16, 1, 0.3, 1],
   "durationScale": 1,
   "entranceDistance": 40,
-  "staggerDelay": 0.06
+  "staggerDelay": 0.06,
+  "revealGranularity": "phrase",
+  "thinkingPosture": "pulse"
 }
 
 ### Field ranges (stay inside the usable range; hard bounds are the UI's physical limits)
@@ -153,24 +185,49 @@ Return **ONLY valid JSON** — no prose, no markdown fences, no explanation. Exa
 | \`springDamping\` | 8–40 | 1–100, step 1 | see critical-damping rule below |
 | \`springMass\` | 0.5–2 | 0.5–5, step 0.1 | |
 | \`bezier\` | x∈[0,1], y∈[-0.3,1.3] | same | y>1 = overshoot, y<0 = anticipation |
+| \`fontSizeScale\` | 0.9–1.15 | — | x-height compensation |
 | \`durationScale\` | 0.6–1.6 | — | global tempo |
-| \`entranceDistance\` | 0–100 (px) | — | 0 = pure fade |
+| \`entranceDistance\` | 0–100 (px) | — | 0 = pure fade; set independently of durationScale — what matters is velocity = distance ÷ duration |
 | \`staggerDelay\` | 0–0.15 (s) | — | orchestration rhythm |
+| \`revealGranularity\` | "character" / "word" / "phrase" | enum | text reveal unit for streaming content |
+| \`thinkingPosture\` | "breathe" / "pulse" / "bounce" | enum | thinking indicator posture, derived from style qualities |
 
 ### Principle → parameter mapping
 
 - **Heavy / restrained styles (luxury, serious):** no rebound anywhere.
   - Spring: \`damping ≥ critical\` (critical ≈ 2×√(stiffness × mass)).
   - Bezier: all y values stay within [0,1] — never above 1.
-  - \`durationScale\` toward 1.2–1.5, \`entranceDistance\` small (8–24), staggerDelay moderate.
+  - \`durationScale\` toward 1.2–1.5. \`entranceDistance\` LARGE (50–80) — slowness lives in
+    durationScale, distance carries presence. Low velocity = large distance ÷ long duration.
+  - staggerDelay moderate.
 - **High-energy styles (playful):** one precise rebound, not chaos.
   - Spring: \`damping ≈ 0.4–0.6 × critical\`.
   - Bezier: y1 may exceed 1 (e.g. [0.34, 1.56, 0.64, 1]).
-  - \`durationScale\` toward 0.7–0.9, \`entranceDistance\` larger (40–80).
+  - \`durationScale\` toward 0.7–0.9, \`entranceDistance\` large (50–80) — high velocity
+    = large distance ÷ short duration.
 - **Mechanical / precise styles (brutalist):** precision is the aesthetic.
   - Fast, crisp, minimal rebound: high stiffness, \`damping ≈ critical\`.
+  - \`entranceDistance\` SHORT (8–20), \`durationScale\` low — high velocity, short throw.
   - Mechanical character comes from **strictly even rhythm**: a constant \`staggerDelay\`,
     never irregular pauses. Even intervals read as intent; uneven ones read as lag.
+- **Reveal granularity (streaming text) is derived from style QUALITIES,
+  never from style names.** Do not map style names to values; derive:
+  - mechanical / precise / technical quality → "character"
+    (typewriter-like; pair with strictly even staggerDelay)
+  - high-energy / lively quality → "word"
+    (word-by-word with light spring character)
+  - composed / heavy / calm quality → "phrase"
+    (whole phrases surfacing with slow fades)
+  A style described in any language or metaphor is first reduced to these
+  qualities, then landed on a granularity.
+- **Thinking posture is derived from style QUALITIES, never from style names.**
+  - composed / heavy / calm / serene quality → "breathe": the indicator does
+    not perform busyness; only luminance and a barely-visible scale move.
+  - mechanical / precise / technical quality → "pulse": units light up one
+    after another at strictly even intervals; sequence reads as intent; zero
+    displacement, zero scale.
+  - high-energy / lively / playful quality → "bounce": dots physically hop;
+    the only posture with displacement.
 - **Functional floor (all styles):** never drag responsiveness into sluggishness.
   \`durationScale\` never above 1.6; springs must settle quickly enough that
   functional-primary components stay instant.`;

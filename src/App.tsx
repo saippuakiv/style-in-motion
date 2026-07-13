@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   type DesignTokens,
   DEFAULTS,
@@ -11,9 +11,12 @@ import {
 } from './lib/api';
 import { MotionTokensProvider } from './lib/MotionTokensContext';
 import { BezierEditor, type Bezier } from './components/BezierEditor';
-import { SpringEditor, SliderRow, type SpringParams } from './components/SpringEditor';
+import {
+  SpringEditor,
+  SliderRow,
+  type SpringParams,
+} from './components/SpringEditor';
 import { CommandPalettePreview } from './components/CommandPalette';
-import { Switch } from './components/Switch';
 import { ToastPreview } from './components/Toast';
 import { StreamingText } from './components/StreamingText';
 import { ThinkingIndicator } from './components/ThinkingIndicator';
@@ -50,16 +53,28 @@ export function App() {
 
   const [switchOn, setSwitchOn] = useState(true);
   const [streamReplay, setStreamReplay] = useState<(() => void) | null>(null);
-  const [cmdReplay,    setCmdReplay]    = useState<(() => void) | null>(null);
-  const [skelReplay,   setSkelReplay]   = useState<(() => void) | null>(null);
-  const [ctxReplay,    setCtxReplay]    = useState<(() => void) | null>(null);
+  const [cmdReplay, setCmdReplay] = useState<(() => void) | null>(null);
+  const [skelReplay, setSkelReplay] = useState<(() => void) | null>(null);
+  const [ctxReplay, setCtxReplay] = useState<(() => void) | null>(null);
 
   /* Stable callbacks — inline arrow functions in JSX re-create every render,
      causing onReplayReady useEffects in children to loop infinitely. */
-  const onStreamReplayReady = useCallback((fn: () => void) => setStreamReplay(() => fn), []);
-  const onCmdReplayReady    = useCallback((fn: () => void) => setCmdReplay(() => fn), []);
-  const onSkelReplayReady   = useCallback((fn: () => void) => setSkelReplay(() => fn), []);
-  const onCtxReplayReady    = useCallback((fn: () => void) => setCtxReplay(() => fn), []);
+  const onStreamReplayReady = useCallback(
+    (fn: () => void) => setStreamReplay(() => fn),
+    [],
+  );
+  const onCmdReplayReady = useCallback(
+    (fn: () => void) => setCmdReplay(() => fn),
+    [],
+  );
+  const onSkelReplayReady = useCallback(
+    (fn: () => void) => setSkelReplay(() => fn),
+    [],
+  );
+  const onCtxReplayReady = useCallback(
+    (fn: () => void) => setCtxReplay(() => fn),
+    [],
+  );
 
   useEffect(() => {
     loadFont(DEFAULTS.fontSans);
@@ -109,29 +124,73 @@ export function App() {
     }));
   };
 
+  /* Motion key — changes whenever any motion value changes.
+     Debounced so slider dragging doesn't remount on every tick. */
+  const motionKey = [
+    spring.stiffness,
+    spring.damping,
+    spring.mass,
+    ...bezier,
+    tokens.durationScale,
+    tokens.entranceDistance,
+    tokens.staggerDelay,
+    tokens.revealGranularity,
+    tokens.thinkingPosture,
+  ].join('-');
+
+  const [debouncedMotionKey, setDebouncedMotionKey] = useState(motionKey);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(
+      () => setDebouncedMotionKey(motionKey),
+      300,
+    );
+    return () => clearTimeout(debounceRef.current);
+  }, [motionKey]);
+
   /* Generated-token overrides scoped to the preview panel */
   const vars = tokenVars(tokens, bezier);
 
   function renderCell(name: string) {
     switch (name) {
       case 'Command Palette':
-        return <CommandPalettePreview onReplayReady={onCmdReplayReady} />;
+        return (
+          <CommandPalettePreview
+            key={debouncedMotionKey}
+            onReplayReady={onCmdReplayReady}
+          />
+        );
       case 'Toast':
-        return <ToastPreview />;
+        return <ToastPreview key={debouncedMotionKey} />;
       case 'Streaming Text':
-        return <StreamingText onReplayReady={onStreamReplayReady} />;
+        return (
+          <StreamingText
+            key={debouncedMotionKey}
+            onReplayReady={onStreamReplayReady}
+          />
+        );
       case 'Skeleton':
-        return <SkeletonCard onReplayReady={onSkelReplayReady} />;
+        return (
+          <SkeletonCard
+            key={debouncedMotionKey}
+            onReplayReady={onSkelReplayReady}
+          />
+        );
       case 'Context Menu':
         return (
-          <ContextMenuPreview onReplayReady={onCtxReplayReady} />
+          <ContextMenuPreview
+            key={debouncedMotionKey}
+            onReplayReady={onCtxReplayReady}
+          />
         );
       case 'Drawer':
-        return <DrawerPreview />;
+        return <DrawerPreview key={debouncedMotionKey} />;
       case 'Multi-step Dialog':
-        return <OnboardingDialog />;
+        return <OnboardingDialog key={debouncedMotionKey} />;
       case 'Thinking Indicator':
-        return <ThinkingIndicator />;
+        return <ThinkingIndicator key={debouncedMotionKey} />;
       default:
         return null;
     }
@@ -290,137 +349,148 @@ export function App() {
               </span>
             ) : (
               <>
-              <SubLabel>Color</SubLabel>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: 'var(--space-2)',
-                  marginTop: 'var(--space-2)',
-                }}
-              >
-                {(
-                  [
-                    ['bg', tokens.bg],
-                    ['surface', tokens.surface],
-                    ['text', tokens.text],
-                    ['muted', tokens.muted],
-                    ['border', tokens.border],
-                    ['accent', tokens.accent],
-                    ['accentText', tokens.accentText],
-                    ['primary', tokens.primary],
-                    ['secondary', tokens.secondary],
-                  ] as [string, string][]
-                ).map(([name, hex]) => (
-                  <div
-                    key={name}
-                    style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                  >
+                <SubLabel>Color</SubLabel>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: 'var(--space-2)',
+                    marginTop: 'var(--space-2)',
+                  }}
+                >
+                  {(
+                    [
+                      ['bg', tokens.bg],
+                      ['surface', tokens.surface],
+                      ['text', tokens.text],
+                      ['muted', tokens.muted],
+                      ['border', tokens.border],
+                      ['accent', tokens.accent],
+                      ['accentText', tokens.accentText],
+                      ['primary', tokens.primary],
+                      ['secondary', tokens.secondary],
+                    ] as [string, string][]
+                  ).map(([name, hex]) => (
                     <div
-                      style={{
-                        width: 14,
-                        height: 14,
-                        borderRadius: 3,
-                        background: hex,
-                        border: '1px solid var(--shell-border)',
-                        flexShrink: 0,
-                      }}
-                    />
-                    <div style={{ minWidth: 0 }}>
+                      key={name}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                    >
                       <div
                         style={{
-                          fontSize: 10,
-                          color: 'var(--shell-text-muted)',
-                          fontFamily: 'var(--shell-font-mono)',
-                          lineHeight: 1.2,
+                          width: 14,
+                          height: 14,
+                          borderRadius: 3,
+                          background: hex,
+                          border: '1px solid var(--shell-border)',
+                          flexShrink: 0,
                         }}
-                      >
-                        {name}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 10,
-                          color: 'var(--shell-text-dim)',
-                          fontFamily: 'var(--shell-font-mono)',
-                          lineHeight: 1.2,
-                        }}
-                      >
-                        {hex}
+                      />
+                      <div style={{ minWidth: 0 }}>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: 'var(--shell-text-muted)',
+                            fontFamily: 'var(--shell-font-mono)',
+                            lineHeight: 1.2,
+                          }}
+                        >
+                          {name}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: 'var(--shell-text-dim)',
+                            fontFamily: 'var(--shell-font-mono)',
+                            lineHeight: 1.2,
+                          }}
+                        >
+                          {hex}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-
-              <div
-                style={{
-                  borderTop: '1px dashed var(--shell-border)',
-                  marginTop: 'var(--space-3)',
-                  marginBottom: 'var(--space-3)',
-                }}
-              />
-
-              <SubLabel>Type &amp; Radius</SubLabel>
-              <div
-                style={{ display: 'flex', flexDirection: 'column', gap: 6 }}
-              >
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                  <span
-                    style={{
-                      fontSize: 10,
-                      color: 'var(--shell-text-muted)',
-                      fontFamily: 'var(--shell-font-mono)',
-                      flexShrink: 0,
-                    }}
-                  >
-                    fontSans
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 11,
-                      color: 'var(--shell-text)',
-                      fontFamily: `"${tokens.fontSans}", system-ui, sans-serif`,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {tokens.fontSans}
-                  </span>
+                  ))}
                 </div>
-                {(
-                  [
-                    ['radiusSm', tokens.radiusSm],
-                    ['radiusMd', tokens.radiusMd],
-                    ['radiusLg', tokens.radiusLg],
-                  ] as [string, string][]
-                ).map(([name, val]) => (
+
+                <div
+                  style={{
+                    borderTop: '1px dashed var(--shell-border)',
+                    marginTop: 'var(--space-3)',
+                    marginBottom: 'var(--space-3)',
+                  }}
+                />
+
+                <SubLabel>Type &amp; Radius</SubLabel>
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 8,
+                    marginTop: 'var(--space-2)',
+                  }}
+                >
                   <div
-                    key={name}
                     style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}
                   >
                     <span
                       style={{
-                        fontSize: 10,
+                        fontSize: 11,
                         color: 'var(--shell-text-muted)',
                         fontFamily: 'var(--shell-font-mono)',
                         flexShrink: 0,
                       }}
                     >
-                      {name}
+                      fontSans
                     </span>
                     <span
                       style={{
-                        fontSize: 10,
-                        color: 'var(--shell-text-dim)',
-                        fontFamily: 'var(--shell-font-mono)',
+                        fontSize: 13,
+                        color: 'var(--shell-text)',
+                        fontFamily: `"${tokens.fontSans}", system-ui, sans-serif`,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
                       }}
                     >
-                      {val}
+                      {tokens.fontSans}
                     </span>
                   </div>
-                ))}
-              </div>
+                  {(
+                    [
+                      ['radiusSm', tokens.radiusSm],
+                      ['radiusMd', tokens.radiusMd],
+                      ['radiusLg', tokens.radiusLg],
+                    ] as [string, string][]
+                  ).map(([name, val]) => (
+                    <div
+                      key={name}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'baseline',
+                        gap: 8,
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: 11,
+                          color: 'var(--shell-text-muted)',
+                          fontFamily: 'var(--shell-font-mono)',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {name}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          color: 'var(--shell-text-dim)',
+                          fontFamily: 'var(--shell-font-mono)',
+                        }}
+                      >
+                        {val}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </>
             )}
           </div>
@@ -451,7 +521,9 @@ export function App() {
               max={1.6}
               step={0.05}
               format={(v) => v.toFixed(2)}
-              onChange={(v) => setTokens((prev) => ({ ...prev, durationScale: v }))}
+              onChange={(v) =>
+                setTokens((prev) => ({ ...prev, durationScale: v }))
+              }
             />
             <SliderRow
               label='entranceDistance'
@@ -460,7 +532,9 @@ export function App() {
               max={100}
               step={2}
               format={(v) => `${Math.round(v)}px`}
-              onChange={(v) => setTokens((prev) => ({ ...prev, entranceDistance: v }))}
+              onChange={(v) =>
+                setTokens((prev) => ({ ...prev, entranceDistance: v }))
+              }
             />
             <SliderRow
               label='staggerDelay'
@@ -469,7 +543,9 @@ export function App() {
               max={0.15}
               step={0.005}
               format={(v) => v.toFixed(3)}
-              onChange={(v) => setTokens((prev) => ({ ...prev, staggerDelay: v }))}
+              onChange={(v) =>
+                setTokens((prev) => ({ ...prev, staggerDelay: v }))
+              }
             />
           </div>
         </section>
@@ -499,65 +575,67 @@ export function App() {
           durationScale: tokens.durationScale,
           entranceDistance: tokens.entranceDistance,
           staggerDelay: tokens.staggerDelay,
+          revealGranularity: tokens.revealGranularity,
+          thinkingPosture: tokens.thinkingPosture,
         }}
       >
-      <main
-        style={{
-          ...(vars as React.CSSProperties),
-          flex: 1,
-          overflowY: 'auto',
-          background: 'var(--shell-bg-right)',
-          padding: 'var(--space-6)',
-          fontFamily: 'var(--font-sans)',
-          transition: 'background-color var(--duration-slow) var(--ease-out)',
-        }}
-      >
-        <div
+        <main
           style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: 'var(--space-4)',
+            ...(vars as React.CSSProperties),
+            flex: 1,
+            overflowY: 'auto',
+            background: 'var(--shell-bg-right)',
+            padding: 'var(--space-6)',
+            fontFamily: 'var(--font-sans)',
+            transition: 'background-color var(--duration-slow) var(--ease-out)',
           }}
         >
-          {CELLS.map((name) => (
-            <PreviewCell
-              key={name}
-              name={name}
-              headerRight={(() => {
-                const fn =
-                  name === 'Streaming Text'
-                    ? streamReplay
-                    : name === 'Command Palette'
-                      ? cmdReplay
-                      : name === 'Skeleton'
-                        ? skelReplay
-                        : name === 'Context Menu'
-                          ? ctxReplay
-                          : null;
-                return fn ? (
-                  <button
-                    type='button'
-                    onClick={fn}
-                    style={{
-                      padding: 0,
-                      fontSize: 10,
-                      background: 'none',
-                      border: 'none',
-                      color: 'var(--color-muted)',
-                      fontFamily: 'var(--font-sans)',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    replay
-                  </button>
-                ) : undefined;
-              })()}
-            >
-              {renderCell(name)}
-            </PreviewCell>
-          ))}
-        </div>
-      </main>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: 'var(--space-4)',
+            }}
+          >
+            {CELLS.map((name) => (
+              <PreviewCell
+                key={name}
+                name={name}
+                headerRight={(() => {
+                  const fn =
+                    name === 'Streaming Text'
+                      ? streamReplay
+                      : name === 'Command Palette'
+                        ? cmdReplay
+                        : name === 'Skeleton'
+                          ? skelReplay
+                          : name === 'Context Menu'
+                            ? ctxReplay
+                            : null;
+                  return fn ? (
+                    <button
+                      type='button'
+                      onClick={fn}
+                      style={{
+                        padding: 0,
+                        fontSize: 10,
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--color-muted)',
+                        fontFamily: 'var(--font-sans)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      replay
+                    </button>
+                  ) : undefined;
+                })()}
+              >
+                {renderCell(name)}
+              </PreviewCell>
+            ))}
+          </div>
+        </main>
       </MotionTokensProvider>
     </div>
   );

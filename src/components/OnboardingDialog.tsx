@@ -18,8 +18,6 @@ const USE_CASES = ['Writing', 'Coding', 'Research', 'Design'] as const;
 type UseCase = (typeof USE_CASES)[number];
 type ResponseStyle = 'Concise' | 'Detailed';
 
-const DOT_SPRING = { type: 'spring', stiffness: 400, damping: 30 } as const;
-
 const stepVariants = {
   enter: (dir: number) => ({ x: `${110 * dir}%`, opacity: 0 }),
   center: () => ({ x: '0%', opacity: 1 }),
@@ -181,7 +179,7 @@ function Step3() {
       <p
         style={{
           margin: 0,
-          fontSize: 12,
+          fontSize: 'var(--text-xs)',
           color: 'var(--color-muted)',
           fontFamily: 'var(--font-sans)',
         }}
@@ -195,8 +193,9 @@ function Step3() {
 /* ── Main component ── */
 
 export function OnboardingDialog() {
-  const { spring: sp } = useMotionTokens();
-  const stepSpring = { type: 'spring' as const, stiffness: sp.stiffness, damping: sp.damping, mass: sp.mass };
+  const { scaledSpring } = useMotionTokens();
+  const stepSpring = { type: 'spring' as const, stiffness: scaledSpring.stiffness, damping: scaledSpring.damping, mass: scaledSpring.mass };
+  const dotSpring  = { type: 'spring' as const, stiffness: scaledSpring.stiffness, damping: scaledSpring.damping, mass: scaledSpring.mass };
 
   const [step, setStep] = useState(0);
   const [dir, setDir] = useState(1);
@@ -251,7 +250,13 @@ export function OnboardingDialog() {
         }}
       >
         {/* Step content area */}
-        <div style={{ padding: '20px 20px 16px', overflow: 'hidden' }}>
+        <div
+          style={{
+            padding: '20px 20px 16px',
+            overflow: 'hidden',
+            position: 'relative',
+          }}
+        >
           <AnimatePresence mode='popLayout' custom={dir}>
             <motion.div
               key={step}
@@ -307,7 +312,7 @@ export function OnboardingDialog() {
                   background:
                     i === step ? 'var(--color-accent)' : 'var(--color-border)',
                 }}
-                transition={DOT_SPRING}
+                transition={dotSpring}
                 style={{ borderRadius: '50%' }}
               />
             ))}

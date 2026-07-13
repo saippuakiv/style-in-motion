@@ -30,6 +30,14 @@ export interface DesignTokens {
   entranceDistance: number;
   /** Stagger delay between rapid-fire entrances in seconds. */
   staggerDelay: number;
+  /** Compensates for typeface x-height differences; 1 = neutral, range 0.9–1.15. */
+  fontSizeScale: number;
+  /** Text reveal granularity for streaming content. Derived from style qualities, not names. */
+  revealGranularity: 'character' | 'word' | 'phrase';
+  /** Posture of the thinking/loading state. Derived from style qualities,
+      not names. breathe = still, only luminance moves; pulse = sequential
+      lighting, strictly even, no displacement; bounce = physical y motion. */
+  thinkingPosture: 'breathe' | 'pulse' | 'bounce';
 }
 
 export const DEFAULTS: DesignTokens = {
@@ -53,6 +61,9 @@ export const DEFAULTS: DesignTokens = {
   durationScale: 1,
   entranceDistance: 60,
   staggerDelay: 0.06,
+  fontSizeScale: 1,
+  revealGranularity: 'phrase',
+  thinkingPosture: 'breathe',
 };
 
 export const SUGGESTIONS = [
@@ -122,6 +133,7 @@ export function tokenVars(
   vars['--spring-stiffness'] = String(tokens.springStiffness);
   vars['--spring-damping'] = String(tokens.springDamping);
   vars['--spring-mass'] = String(tokens.springMass);
+  vars['--font-size-scale'] = String(tokens.fontSizeScale);
   vars['--duration-scale'] = String(tokens.durationScale);
   vars['--entrance-distance'] = `${tokens.entranceDistance}px`;
   vars['--stagger-delay'] = `${tokens.staggerDelay}s`;
