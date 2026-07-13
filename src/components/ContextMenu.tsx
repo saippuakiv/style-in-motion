@@ -123,9 +123,15 @@ export interface ContextMenuPreviewProps {
 
 export function ContextMenuPreview({ onReplayReady }: ContextMenuPreviewProps) {
   const { bezier, spring } = useMotionTokens();
-  // responsiveness floor — functional-primary must always feel instant, never loose
+  // Functional-primary: speed is clamped (stiffness floor keeps it fast),
+  // texture passes through — the generated damping RATIO is preserved,
+  // banded to [0.6, 1.05] so playful visibly rebounds (~9% overshoot at 0.6)
+  // while nothing ever gets wobbly or sluggish.
   const s = Math.max(300, spring.stiffness);
-  const d = Math.max(spring.damping, 0.9 * 2 * Math.sqrt(s * spring.mass));
+  const generatedRatio =
+    spring.damping / (2 * Math.sqrt(spring.stiffness * spring.mass));
+  const ratio = Math.min(Math.max(generatedRatio, 0.6), 1.05);
+  const d = ratio * 2 * Math.sqrt(s * spring.mass);
   // Entrance character follows bezier; duration stays hardcoded (functional-primary)
   const menuTransition = { type: 'tween' as const, duration: 0.12, ease: bezier };
   // Entrance open spring — texture adapts to style, responsiveness floor applied

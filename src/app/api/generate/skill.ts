@@ -39,9 +39,14 @@ With it, the output has an author.
 
 ## 1. Color
 
-- **Never use pure black or near-black as a background.** Even when the style strongly
-  implies darkness (luxury, noir, dark, obsidian), express that core through material,
-  typography, and low-saturation deep tones — not a black-background cliché.
+- **Dark backgrounds are opt-in, never inferred from mood.** A dark palette is only
+  correct when the prompt explicitly asks for it (dark / black / night / obsidian as
+  a direct request). Heavy, serious, brutalist, or luxury qualities alone do NOT justify
+  a dark background — express those through material, typography, and low-saturation
+  deep tones instead.
+- **When dark IS explicitly requested:** never pure \`#000000\`. Use a near-black with a
+  hue bias (e.g. \`#0a0a12\`, \`#0d0d0a\`, \`#10080a\`). Surface hierarchy comes from
+  stepped surface tones (bg → surface → raised), not from borders or added white edges.
 - **Prefer low saturation.** Reach for depth and restraint over loud, high-saturation color.
 - **Do not let a single accent carry an entire style.** A lone bright accent on white
   reads as thin and monotone. Styles that want energy (e.g. playful) need a *layered
@@ -136,6 +141,8 @@ and from-composure: large entrance distance + long duration = low velocity, drif
 from real space. Overshoot near zero — precious things do not bounce. Streaming text
 reveals by phrase — slow fades with a visible, unhurried lift. Thinking indicator:
 breathe — only luminance moves, no displacement, no sequence. Stillness is the luxury.
+noOvershoot: false — a slight catch past the resting point reads as mass and weight,
+which is what luxury wants. Only surgical precision demands a dead landing.
 
 **playful**
 A layered, rich palette — not a single bright accent on white. Restrained, not chaotic:
@@ -143,6 +150,7 @@ one or two precise moments of energy rather than clashing color and bounce every
 Expressive motion carries some mass and visible rebound, but kept precise by the
 minimalist filter. Streaming text reveals by word with a light, precise spring.
 Thinking indicator: bounce — dots physically hop. One clear, physical moment of energy.
+noOvershoot: false — visible rebound is the point.
 
 **brutalist**
 Not a black background. Black text on white, dark "pen-line" borders — a hand-drawn,
@@ -152,6 +160,8 @@ fast and crisp with minimal rebound. If a mechanical / typewriter reveal is used
 precision, not lag. Streaming text reveals by character at strictly even intervals.
 Thinking indicator: pulse — blocks light up one at a time at strictly even intervals.
 Zero displacement, zero scale. Sequence reads as intent.
+noOvershoot: false — brutalist motion is crisp, not dead; damping near critical is
+sufficient. Reserve true for explicitly surgical/monumental/precision-machined prompts.
 
 ---
 
@@ -174,7 +184,8 @@ Return **ONLY valid JSON** — no prose, no markdown fences, no explanation. Exa
   "entranceDistance": 40,
   "staggerDelay": 0.06,
   "revealGranularity": "phrase",
-  "thinkingPosture": "pulse"
+  "thinkingPosture": "pulse",
+  "noOvershoot": false
 }
 
 ### Field ranges (stay inside the usable range; hard bounds are the UI's physical limits)
@@ -191,6 +202,7 @@ Return **ONLY valid JSON** — no prose, no markdown fences, no explanation. Exa
 | \`staggerDelay\` | 0–0.15 (s) | — | orchestration rhythm |
 | \`revealGranularity\` | "character" / "word" / "phrase" | enum | text reveal unit for streaming content |
 | \`thinkingPosture\` | "breathe" / "pulse" / "bounce" | enum | thinking indicator posture, derived from style qualities |
+| \`noOvershoot\` | true / false | boolean | true ONLY for dead-landing qualities (severe, surgical, monumental); false for all others including calm/heavy/luxury |
 
 ### Principle → parameter mapping
 
@@ -228,6 +240,14 @@ Return **ONLY valid JSON** — no prose, no markdown fences, no explanation. Exa
     displacement, zero scale.
   - high-energy / lively / playful quality → "bounce": dots physically hop;
     the only posture with displacement.
+- **noOvershoot is derived from QUALITIES, not from slowness or weight.**
+  - Set true ONLY when the style demands a dead landing — severe, monumental,
+    surgical, precision-machined qualities. "Any visible rebound is a violation."
+  - Set false for calm, heavy, luxurious, serious styles. A slight catch past the
+    resting point (~ratio 0.8) reads as MASS. Mass is what heavy styles want.
+    Eliminating it makes heavy styles feel stiff, not weighty.
+  - The route enforces this mathematically (critical damping) when true — the
+    model's job is only the judgment of WHEN to set it.
 - **Functional floor (all styles):** never drag responsiveness into sluggishness.
   \`durationScale\` never above 1.6; springs must settle quickly enough that
   functional-primary components stay instant.`;

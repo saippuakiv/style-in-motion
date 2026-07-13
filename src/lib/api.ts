@@ -38,6 +38,10 @@ export interface DesignTokens {
       not names. breathe = still, only luminance moves; pulse = sequential
       lighting, strictly even, no displacement; bounce = physical y motion. */
   thinkingPosture: 'breathe' | 'pulse' | 'bounce';
+  /** If true, route.ts enforces critical damping (ratio ≥ 1) so springs land
+      without any overshoot. Set only for dead-landing qualities (severe,
+      surgical, monumental). False for calm/heavy/luxury — slight mass is wanted. */
+  noOvershoot: boolean;
 }
 
 export const DEFAULTS: DesignTokens = {
@@ -64,6 +68,7 @@ export const DEFAULTS: DesignTokens = {
   fontSizeScale: 1,
   revealGranularity: 'phrase',
   thinkingPosture: 'breathe',
+  noOvershoot: false,
 };
 
 export const SUGGESTIONS = [

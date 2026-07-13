@@ -49,9 +49,15 @@ export function CommandPalettePreview({
   onReplayReady,
 }: CommandPalettePreviewProps) {
   const { bezier, spring } = useMotionTokens();
-  // responsiveness floor — functional-primary must always feel instant, never loose
+  // Functional-primary: speed is clamped (stiffness floor keeps it fast),
+  // texture passes through — the generated damping RATIO is preserved,
+  // banded to [0.6, 1.05] so playful visibly rebounds (~9% overshoot at 0.6)
+  // while nothing ever gets wobbly or sluggish.
   const s = Math.max(300, spring.stiffness);
-  const d = Math.max(spring.damping, 0.9 * 2 * Math.sqrt(s * spring.mass));
+  const generatedRatio =
+    spring.damping / (2 * Math.sqrt(spring.stiffness * spring.mass));
+  const ratio = Math.min(Math.max(generatedRatio, 0.6), 1.05);
+  const d = ratio * 2 * Math.sqrt(s * spring.mass);
   // Entrance character follows bezier; duration stays hardcoded (functional-primary)
   const paletteTransition = { type: 'tween' as const, duration: 0.15, ease: bezier };
   const highlightSpring = { type: 'spring' as const, stiffness: s, damping: d, mass: spring.mass };
