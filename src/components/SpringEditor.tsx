@@ -113,31 +113,6 @@ export function SpringEditor({ value, onChange }: SpringEditorProps) {
         />
       </div>
 
-      {/* Replay */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-          marginTop: 10,
-          marginBottom: 10,
-        }}
-      >
-        <button
-          onClick={() => setReplayKey((k) => k + 1)}
-          style={{
-            padding: '3px 8px',
-            fontSize: 11,
-            background: 'none',
-            border: '1px solid var(--shell-border)',
-            borderRadius: 'var(--shell-radius-sm)',
-            color: 'var(--shell-text-muted)',
-            cursor: 'pointer',
-          }}
-        >
-          replay
-        </button>
-      </div>
-
       {/* Spring preview track */}
       <div
         style={{
@@ -146,6 +121,7 @@ export function SpringEditor({ value, onChange }: SpringEditorProps) {
           background: 'var(--shell-track)',
           borderRadius: TRACK_H / 2,
           cursor: 'pointer',
+          marginTop: 8,
         }}
         onClick={() => setReplayKey((k) => k + 1)}
       >
@@ -175,6 +151,30 @@ export function SpringEditor({ value, onChange }: SpringEditorProps) {
           damping={value.damping}
           mass={value.mass}
         />
+      </div>
+
+      {/* Replay — below track, right-aligned (matches TWEEN layout) */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          marginTop: 6,
+        }}
+      >
+        <button
+          onClick={() => setReplayKey((k) => k + 1)}
+          style={{
+            padding: '3px 8px',
+            fontSize: 11,
+            background: 'none',
+            border: '1px solid var(--shell-border)',
+            borderRadius: 'var(--shell-radius-sm)',
+            color: 'var(--shell-text-muted)',
+            cursor: 'pointer',
+          }}
+        >
+          replay
+        </button>
       </div>
     </div>
   );

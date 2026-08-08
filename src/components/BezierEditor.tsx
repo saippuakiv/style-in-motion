@@ -8,9 +8,14 @@
    The SVG canvas maps x∈[0,1] to the full inner width (minus
    point-radius padding). The tween preview track below uses
    separate shared track geometry from trackGeometry.ts.
+
+   The curve graph defaults to COLLAPSED so the panel's spring
+   and expression sliders fit on the first screen. The value
+   readout and preset chips stay visible when collapsed.
    --------------------------------------------------------------- */
 
 import { useCallback, useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { BALL_D, BALL_R, BALL_PAD, TRACK_H } from './trackGeometry';
 
 export type Bezier = [number, number, number, number];
@@ -18,6 +23,10 @@ export type Bezier = [number, number, number, number];
 export interface BezierEditorProps {
   value: Bezier;
   onChange: (value: Bezier) => void;
+  // future: header label is a prop so a skill-derived parameter-importance
+  // hint can populate it later (primary/secondary). Neutral default until
+  // that field exists.
+  label?: string;
 }
 
 /* ── SVG canvas coordinate system ──
@@ -59,10 +68,15 @@ const PRESETS: Record<string, Bezier> = {
   gentle: [0.4, 0, 0.2, 1],
 };
 
-export function BezierEditor({ value, onChange }: BezierEditorProps) {
+export function BezierEditor({
+  value,
+  onChange,
+  label = 'Easing curve',
+}: BezierEditorProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const dragging = useRef<number | null>(null);
   const [replayKey, setReplayKey] = useState(0);
+  const [expanded, setExpanded] = useState(false);
 
   const p1 = toSvg(value[0], value[1]);
   const p2 = toSvg(value[2], value[3]);
@@ -107,139 +121,43 @@ export function BezierEditor({ value, onChange }: BezierEditorProps) {
 
   return (
     <div>
-      <svg
-        ref={svgRef}
-        viewBox={`0 0 ${W} ${CANVAS_H}`}
-        width='100%'
-        style={{
-          display: 'block',
-          cursor: dragging.current !== null ? 'grabbing' : 'default',
-        }}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerLeave={onPointerUp}
-      >
-        <defs>
-          <clipPath id='canvas-clip'>
-            <rect x={0} y={0} width={W} height={CANVAS_H} />
-          </clipPath>
-        </defs>
-
-        {/* Unit boundary lines at x=0 and x=1 */}
-        <line
-          x1={toSvg(0, 0)[0]}
-          y1={0}
-          x2={toSvg(0, 0)[0]}
-          y2={CANVAS_H}
-          stroke='var(--shell-grid)'
-          strokeDasharray='2 4'
-        />
-        <line
-          x1={toSvg(1, 0)[0]}
-          y1={0}
-          x2={toSvg(1, 0)[0]}
-          y2={CANVAS_H}
-          stroke='var(--shell-grid)'
-          strokeDasharray='2 4'
-        />
-
-        {/* Unit boundary lines at y=0 and y=1 */}
-        <line
-          x1={0}
-          y1={toSvg(0, 0)[1]}
-          x2={W}
-          y2={toSvg(0, 0)[1]}
-          stroke='var(--shell-grid)'
-          strokeDasharray='2 4'
-        />
-        <line
-          x1={0}
-          y1={toSvg(0, 1)[1]}
-          x2={W}
-          y2={toSvg(0, 1)[1]}
-          stroke='var(--shell-grid)'
-          strokeDasharray='2 4'
-        />
-
-        {/* Clipped group: handles, curve, anchors */}
-        <g clipPath='url(#canvas-clip)'>
-          <line
-            x1={start[0]}
-            y1={start[1]}
-            x2={p1[0]}
-            y2={p1[1]}
-            stroke='var(--shell-handle)'
-            strokeWidth={1}
-          />
-          <line
-            x1={end[0]}
-            y1={end[1]}
-            x2={p2[0]}
-            y2={p2[1]}
-            stroke='var(--shell-handle)'
-            strokeWidth={1}
-          />
-
-          <path
-            d={path}
-            fill='none'
-            stroke='var(--shell-ink)'
-            strokeWidth={0.8}
-          />
-
-          <circle cx={start[0]} cy={start[1]} r={3} fill='var(--shell-ink)' />
-          <circle cx={end[0]} cy={end[1]} r={3} fill='var(--shell-ink)' />
-        </g>
-
-        {/* Draggable control points */}
-        <circle
-          cx={p1[0]}
-          cy={p1[1]}
-          r={6}
-          fill='var(--shell-accent)'
-          stroke='var(--shell-bg)'
-          strokeWidth={1.5}
-          style={{ cursor: 'grab' }}
-          onPointerDown={onPointerDown(0)}
-        />
-        <circle
-          cx={p2[0]}
-          cy={p2[1]}
-          r={6}
-          fill='var(--shell-accent)'
-          stroke='var(--shell-bg)'
-          strokeWidth={1.5}
-          style={{ cursor: 'grab' }}
-          onPointerDown={onPointerDown(1)}
-        />
-      </svg>
-
-      {/* Replay */}
+      {/* Value display — always visible */}
       <div
         style={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-          marginTop: 8,
-          marginBottom: 10,
+          padding: '6px 8px',
+          background: 'var(--shell-surface)',
+          borderRadius: 6,
+          fontFamily: 'var(--shell-font-mono)',
+          fontSize: 11,
+          color: 'var(--shell-text-dim)',
+          wordBreak: 'break-all',
         }}
       >
-        <button
-          onClick={() => setReplayKey((k) => k + 1)}
-          style={{
-            padding: '3px 8px',
-            fontSize: 11,
-            background: 'none',
-            border: '1px solid var(--shell-border)',
-            borderRadius: 'var(--shell-radius-sm)',
-            color: 'var(--shell-text-muted)',
-            cursor: 'pointer',
-          }}
-        >
-          replay
-        </button>
+        {bezierStr}
       </div>
 
-      {/* Tween preview track */}
+      {/* Presets — always visible */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
+        {Object.entries(PRESETS).map(([name, val]) => (
+          <button
+            key={name}
+            onClick={() => onChange(val)}
+            style={{
+              padding: '3px 8px',
+              fontSize: 11,
+              background: 'var(--shell-surface)',
+              border: '1px solid var(--shell-border)',
+              borderRadius: 'var(--shell-radius-sm)',
+              color: 'var(--shell-text-muted)',
+              cursor: 'pointer',
+            }}
+          >
+            {name}
+          </button>
+        ))}
+      </div>
+
+      {/* Tween preview track — always visible */}
       <div
         style={{
           height: TRACK_H,
@@ -247,6 +165,7 @@ export function BezierEditor({ value, onChange }: BezierEditorProps) {
           background: 'var(--shell-track)',
           borderRadius: TRACK_H / 2,
           cursor: 'pointer',
+          marginTop: 8,
         }}
         onClick={() => setReplayKey((k) => k + 1)}
       >
@@ -289,42 +208,194 @@ export function BezierEditor({ value, onChange }: BezierEditorProps) {
         to   { left: calc(${TWEEN_1_PCT}% - ${BALL_R}px); }
       }`}</style>
 
-      {/* Value display */}
+      {/* Replay — always visible */}
       <div
         style={{
-          marginTop: 8,
-          padding: '6px 8px',
-          background: 'var(--shell-surface)',
-          borderRadius: 6,
-          fontFamily: 'var(--shell-font-mono)',
-          fontSize: 11,
-          color: 'var(--shell-text-dim)',
-          wordBreak: 'break-all',
+          display: 'flex',
+          justifyContent: 'flex-end',
+          marginTop: 6,
         }}
       >
-        {bezierStr}
+        <button
+          onClick={() => setReplayKey((k) => k + 1)}
+          style={{
+            padding: '3px 8px',
+            fontSize: 11,
+            background: 'none',
+            border: '1px solid var(--shell-border)',
+            borderRadius: 'var(--shell-radius-sm)',
+            color: 'var(--shell-text-muted)',
+            cursor: 'pointer',
+          }}
+        >
+          replay
+        </button>
       </div>
 
-      {/* Presets */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
-        {Object.entries(PRESETS).map(([name, val]) => (
-          <button
-            key={name}
-            onClick={() => onChange(val)}
-            style={{
-              padding: '3px 8px',
-              fontSize: 11,
-              background: 'var(--shell-surface)',
-              border: '1px solid var(--shell-border)',
-              borderRadius: 'var(--shell-radius-sm)',
-              color: 'var(--shell-text-muted)',
-              cursor: 'pointer',
-            }}
+      {/* Expand/collapse toggle for the curve graph */}
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          width: '100%',
+          padding: '5px 8px',
+          marginTop: 8,
+          background: 'var(--shell-surface)',
+          border: '1px solid var(--shell-border)',
+          borderRadius: 'var(--shell-radius-sm)',
+          cursor: 'pointer',
+          fontSize: 10,
+          fontWeight: 500,
+          color: 'var(--shell-text-muted)',
+          fontFamily: 'var(--shell-font-mono)',
+        }}
+      >
+        <span
+          style={{
+            display: 'inline-block',
+            fontSize: 7,
+            lineHeight: 1,
+            transition: 'transform 0.2s ease',
+            transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
+          }}
+        >
+          ▶
+        </span>
+        {label}
+      </button>
+
+      {/* Curve graph — collapsed by default to reclaim vertical space */}
+      <AnimatePresence initial={false}>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: 'easeInOut' }}
+            style={{ overflow: 'hidden' }}
           >
-            {name}
-          </button>
-        ))}
-      </div>
+            <svg
+              ref={svgRef}
+              viewBox={`0 0 ${W} ${CANVAS_H}`}
+              width='100%'
+              style={{
+                display: 'block',
+                marginTop: 6,
+                cursor: dragging.current !== null ? 'grabbing' : 'default',
+              }}
+              onPointerMove={onPointerMove}
+              onPointerUp={onPointerUp}
+              onPointerLeave={onPointerUp}
+            >
+              <defs>
+                <clipPath id='canvas-clip'>
+                  <rect x={0} y={0} width={W} height={CANVAS_H} />
+                </clipPath>
+              </defs>
+
+              {/* Unit boundary lines at x=0 and x=1 */}
+              <line
+                x1={toSvg(0, 0)[0]}
+                y1={0}
+                x2={toSvg(0, 0)[0]}
+                y2={CANVAS_H}
+                stroke='var(--shell-grid)'
+                strokeDasharray='2 4'
+              />
+              <line
+                x1={toSvg(1, 0)[0]}
+                y1={0}
+                x2={toSvg(1, 0)[0]}
+                y2={CANVAS_H}
+                stroke='var(--shell-grid)'
+                strokeDasharray='2 4'
+              />
+
+              {/* Unit boundary lines at y=0 and y=1 */}
+              <line
+                x1={0}
+                y1={toSvg(0, 0)[1]}
+                x2={W}
+                y2={toSvg(0, 0)[1]}
+                stroke='var(--shell-grid)'
+                strokeDasharray='2 4'
+              />
+              <line
+                x1={0}
+                y1={toSvg(0, 1)[1]}
+                x2={W}
+                y2={toSvg(0, 1)[1]}
+                stroke='var(--shell-grid)'
+                strokeDasharray='2 4'
+              />
+
+              {/* Clipped group: handles, curve, anchors */}
+              <g clipPath='url(#canvas-clip)'>
+                <line
+                  x1={start[0]}
+                  y1={start[1]}
+                  x2={p1[0]}
+                  y2={p1[1]}
+                  stroke='var(--shell-handle)'
+                  strokeWidth={1}
+                />
+                <line
+                  x1={end[0]}
+                  y1={end[1]}
+                  x2={p2[0]}
+                  y2={p2[1]}
+                  stroke='var(--shell-handle)'
+                  strokeWidth={1}
+                />
+
+                <path
+                  d={path}
+                  fill='none'
+                  stroke='var(--shell-ink)'
+                  strokeWidth={0.8}
+                />
+
+                <circle
+                  cx={start[0]}
+                  cy={start[1]}
+                  r={3}
+                  fill='var(--shell-ink)'
+                />
+                <circle
+                  cx={end[0]}
+                  cy={end[1]}
+                  r={3}
+                  fill='var(--shell-ink)'
+                />
+              </g>
+
+              {/* Draggable control points */}
+              <circle
+                cx={p1[0]}
+                cy={p1[1]}
+                r={6}
+                fill='var(--shell-accent)'
+                stroke='var(--shell-bg)'
+                strokeWidth={1.5}
+                style={{ cursor: 'grab' }}
+                onPointerDown={onPointerDown(0)}
+              />
+              <circle
+                cx={p2[0]}
+                cy={p2[1]}
+                r={6}
+                fill='var(--shell-accent)'
+                stroke='var(--shell-bg)'
+                strokeWidth={1.5}
+                style={{ cursor: 'grab' }}
+                onPointerDown={onPointerDown(1)}
+              />
+            </svg>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

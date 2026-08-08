@@ -58,7 +58,7 @@ function clamp(v: number, lo: number, hi: number) {
    ──────────────────────────────────────────────────────────────────────── */
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function postProcess(raw: Record<string, any>): Record<string, unknown> {
+function postProcess(raw: Record<string, any>): Record<string, unknown> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const t: Record<string, any> = { ...raw };
 

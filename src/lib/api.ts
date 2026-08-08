@@ -76,6 +76,8 @@ export const SUGGESTIONS = [
   'dark luxury, gold on obsidian',
   'brutalist tech, raw concrete palette',
   'soft pastel, gentle and rounded',
+  'surgical precision, cold steel on white',
+  'playful bounce, candy colors and rubber',
 ];
 
 /* Only CSS-string tokens — spring params are handled separately. */

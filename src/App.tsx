@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import {
   type DesignTokens,
   DEFAULTS,
@@ -38,7 +39,15 @@ const CELLS = [
   'Thinking Indicator',
 ] as const;
 
+/* Generate-button breathe constants — fixed chrome, never token-driven.
+   #d9d4c8 = --shell-disabled; #e2ddd1 is +8% HSL lightness (eye-set:
+   perceptible slow pulse against the static white label, never a flicker). */
+const BREATHE_BASE = '#d9d4c8';
+const BREATHE_LIGHT = '#e2ddd1';
+const SHELL_ACCENT = '#e54d2e'; // mirrors --shell-accent; hex needed for Framer Motion color interpolation
+
 export function App() {
+  const reduceMotion = useReducedMotion();
   const [tokens, setTokens] = useState<DesignTokens>(DEFAULTS);
   const [bezier, setBezier] = useState<Bezier>([0.16, 1, 0.3, 1]);
   const [spring, setSpring] = useState<SpringParams>({
@@ -269,8 +278,8 @@ export function App() {
           />
           <div
             style={{
-              display: 'flex',
-              flexWrap: 'wrap',
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
               gap: 'var(--space-1)',
             }}
           >
@@ -287,32 +296,87 @@ export function App() {
                   color: 'var(--shell-text-muted)',
                   cursor: 'pointer',
                   textAlign: 'left',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  minWidth: 0,
                 }}
               >
-                {s.length > 32 ? s.slice(0, 32) + '\u2026' : s}
+                {s}
               </button>
             ))}
           </div>
-          <button
+          {/* deliberate: generate button is fixed chrome, not a preview
+              component — breathe is a constant, style-independent affordance
+              and does NOT consume motion tokens. No new tokens exist
+              mid-generation (the model is still computing them), and the
+              control panel stays neutral so style signal is carried only by
+              the eight previews. */}
+          <motion.button
             onClick={generate}
             disabled={loading || !prompt.trim()}
+            animate={
+              loading
+                ? reduceMotion
+                  ? { backgroundColor: BREATHE_LIGHT }
+                  : {
+                      backgroundColor: [
+                        BREATHE_BASE,
+                        BREATHE_LIGHT,
+                        BREATHE_BASE,
+                      ],
+                    }
+                : { backgroundColor: SHELL_ACCENT }
+            }
+            transition={
+              loading && !reduceMotion
+                ? {
+                    duration: 1.4,
+                    ease: 'easeInOut',
+                    repeat: Infinity,
+                  }
+                : { duration: 0.3 }
+            }
             style={{
               width: '100%',
               padding: 'var(--space-3) 0',
               fontSize: 13,
               fontWeight: 600,
-              background: loading
-                ? 'var(--shell-disabled)'
-                : 'var(--shell-accent)',
+              backgroundColor: loading
+                ? BREATHE_BASE
+                : SHELL_ACCENT,
               color: 'var(--shell-accent-fg)',
               border: 'none',
               borderRadius: 'var(--shell-radius)',
               cursor: loading ? 'wait' : 'pointer',
               opacity: !prompt.trim() && !loading ? 0.4 : 1,
+              display: 'grid',
+              placeItems: 'center',
             }}
           >
-            {loading ? 'Generating\u2026' : 'Generate Tokens'}
-          </button>
+            {/* Label crossfade: both labels stacked in the same grid cell.
+                initial={false} ensures the animate value applies on mount
+                with no entry transition — so on first load only "Generate
+                Tokens" is visible (loading starts false). */}
+            <motion.span
+              key='idle'
+              initial={false}
+              animate={{ opacity: loading ? 0 : 1 }}
+              transition={{ duration: reduceMotion ? 0 : 0.2 }}
+              style={{ gridArea: '1/1' }}
+            >
+              Generate Tokens
+            </motion.span>
+            <motion.span
+              key='loading'
+              initial={false}
+              animate={{ opacity: loading ? 1 : 0 }}
+              transition={{ duration: reduceMotion ? 0 : 0.2 }}
+              style={{ gridArea: '1/1' }}
+            >
+              Generating{'\u2026'}
+            </motion.span>
+          </motion.button>
           {error && (
             <div style={{ fontSize: 11, color: 'var(--shell-error)' }}>
               {error}
