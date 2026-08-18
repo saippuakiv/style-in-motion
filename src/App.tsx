@@ -224,12 +224,12 @@ export function App() {
         style={{
           width: 'var(--shell-panel-width)',
           minWidth: 'var(--shell-panel-width)',
-          padding: 'var(--space-5) var(--space-4)',
+          padding: 'var(--space-6) var(--space-4)',
           overflowY: 'auto',
           borderRight: '1px solid var(--shell-border)',
           display: 'flex',
           flexDirection: 'column',
-          gap: 'var(--space-5)',
+          gap: 'var(--space-6)',
           background: 'var(--shell-bg-left)',
         }}
       >
@@ -281,6 +281,7 @@ export function App() {
               padding: 'var(--space-3)',
               fontSize: 13,
               resize: 'vertical',
+              maxHeight: 120,
               background: 'var(--shell-surface)',
               border: '1px solid var(--shell-border)',
               borderRadius: 'var(--shell-radius)',
