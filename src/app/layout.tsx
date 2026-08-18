@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   title: 'Style in Motion',
   description:
     'A motion-first component library with AI-configurable design tokens',
+  icons: {
+    icon: '/icon.svg',
+  },
 };
 
 export default function RootLayout({
