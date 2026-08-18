@@ -10,33 +10,33 @@
   --shell-panel-width: 360px;
 
   /* ---- Surfaces ---- */
-  --shell-bg: #faf8f3;
-  --shell-bg-left: #fff7ed;
-  --shell-bg-right: #fefcfb;
+  --shell-bg: #f5f5ed;
+  --shell-bg-left: #feffed;
+  --shell-bg-right: #f5f5ed;
   --shell-surface: rgba(0, 0, 0, 0.03);
-  --shell-border: #e6e2d8;
+  --shell-border: #e5e6dd;
 
   /* ---- Text ---- */
-  --shell-text: #16150f;
-  --shell-text-muted: #6b6862;
-  --shell-text-dim: #a09b91;
+  --shell-text: #31312a;
+  --shell-text-muted: #65655c;
+  --shell-text-dim: #8d8d82;
 
   /* ---- Accent ---- */
-  --shell-accent: #e54d2e;
+  --shell-accent: #0c7605;
   --shell-accent-fg: #ffffff;
   --shell-error: #dc2626;
-  --shell-disabled: #d9d4c8;
+  --shell-disabled: #d2d2c9;
 
   /* ---- Typography ---- */
   --shell-font: 'DM Sans', system-ui, sans-serif;
   --shell-font-mono: ui-monospace, monospace;
 
   /* ---- Bezier editor ---- */
-  --shell-ink: #2c2520;
-  --shell-grid: #e8e3da;
-  --shell-handle: #b0a99e;
-  --shell-track: #c8c1b6;
-  --shell-track-active: #a8a196;
+  --shell-ink: #65655c;
+  --shell-grid: #e5e6dd;
+  --shell-handle: #b2b3a9;
+  --shell-track: #c4c5bb;
+  --shell-track-active: #8d8d82;
 
   /* ---- Radii ---- */
   --shell-radius: 8px;

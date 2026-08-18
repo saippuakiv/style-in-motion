@@ -42,6 +42,8 @@ export interface DesignTokens {
       without any overshoot. Set only for dead-landing qualities (severe,
       surgical, monumental). False for calm/heavy/luxury — slight mass is wanted. */
   noOvershoot: boolean;
+  /** Structured reasoning entries from the generation skill. Diagnostic — not a design token. */
+  rationale: { summary: string; decision: string; why: string }[];
 }
 
 export const DEFAULTS: DesignTokens = {
@@ -50,7 +52,7 @@ export const DEFAULTS: DesignTokens = {
   text: '#16150f',
   muted: '#6b6862',
   border: '#e6e2d8',
-  accent: '#e54d2e',
+  accent: '#4a7a46',
   accentText: '#ffffff',
   primary: '#3d6b53',
   secondary: '#8b4e2f',
@@ -69,6 +71,7 @@ export const DEFAULTS: DesignTokens = {
   revealGranularity: 'phrase',
   thinkingPosture: 'breathe',
   noOvershoot: false,
+  rationale: [],
 };
 
 export const SUGGESTIONS = [
@@ -117,7 +120,7 @@ export function loadFont(name: string): void {
   const link = document.createElement('link');
   link.id = id;
   link.rel = 'stylesheet';
-  link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(name)}:wght@400;500;600;700&display=swap`;
+  link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(name)}:wght@100..900&display=swap`;
   document.head.appendChild(link);
 }
 

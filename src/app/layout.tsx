@@ -3,7 +3,7 @@ import '../tokens.css';
 import '../shell.css';
 
 export const metadata: Metadata = {
-  title: 'motion-ui',
+  title: 'Style in Motion',
   description:
     'A motion-first component library with AI-configurable design tokens',
 };

@@ -185,8 +185,45 @@ Return **ONLY valid JSON** — no prose, no markdown fences, no explanation. Exa
   "staggerDelay": 0.06,
   "revealGranularity": "phrase",
   "thinkingPosture": "pulse",
-  "noOvershoot": false
+  "noOvershoot": false,
+  "rationale": [
+    { "summary": "plain-language felt outcome", "decision": "parameter = value", "why": "reasoning traced from style core" }
+  ]
 }
+
+### Rationale field
+
+\`rationale\` is an array of 3–5 entries. Each entry is \`{ "summary": string, "decision": string, "why": string }\`.
+
+- **\`summary\`**: ONE short sentence in plain design language, understandable with ZERO
+  knowledge of this token system. Describes the FELT design outcome, not the mechanism.
+  Rules:
+  - MUST NOT contain any token or field name (noOvershoot, revealGranularity,
+    springDamping, entranceDistance, durationScale, thinkingPosture, bezier, stiffness,
+    mass, staggerDelay, fontSizeScale, etc.).
+  - MUST NOT contain any number or physics term (critical damping, velocity, overshoot
+    as jargon, oscillation, ratio, etc.).
+  - It is a plain-language restatement of the SAME decision described in decision/why —
+    NOT a new claim, NOT extra information. If summary and why disagree, that is a bug.
+  - Good: "Motion lands crisply with no bounce — the precision is the point."
+  - Bad (field name): "noOvershoot is true so it dead-lands."
+  - Bad (number/term): "Damping near critical removes oscillation."
+- **\`decision\`**: the specific choice made, INCLUDING the concrete value(s) being emitted
+  in this same JSON response. e.g. \`"springDamping = 14 (~0.45×critical)"\`,
+  \`"noOvershoot = false"\`, \`"revealGranularity = word"\`.
+- **\`why\`**: the design judgment that led there, traced from the style's emotional core.
+  e.g. \`"candy + rubber are elastic materials → visible rebound is the point"\`.
+
+**Critical constraint: the rationale must be FALSIFIABLE.**
+- Every \`decision\` MUST cite the actual numeric value or enum you are emitting in this
+  response. No vague adjectives-only entries ("made it playful"). If an entry cannot name
+  a concrete parameter value, it does not belong.
+- The rationale describes what the tokens in THIS response actually do. It is a
+  transcription of your real decisions, NOT a general description of the style.
+  If the JSON sets damping to near-critical, the rationale may NOT claim "high rebound".
+- Cover the load-bearing decisions: typically engine/overshoot choice, velocity
+  (distance÷duration) reasoning, and the two discrete tokens (revealGranularity,
+  thinkingPosture).
 
 ### Field ranges (stay inside the usable range; hard bounds are the UI's physical limits)
 

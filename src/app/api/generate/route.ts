@@ -9,7 +9,7 @@ const ROUTE_DEFAULTS = {
   text: '#16150f',
   muted: '#6b6862',
   border: '#e6e2d8',
-  accent: '#e54d2e',
+  accent: '#4a7a46',
   accentText: '#ffffff',
   primary: '#3d6b53',
   secondary: '#8b4e2f',
@@ -153,6 +153,32 @@ function postProcess(raw: Record<string, any>): Record<string, unknown> {
     }
   }
 
+  /* 6. Rationale — pass through if valid, default to empty array if not.
+        Repair individual entries missing `summary` (default to "") rather
+        than rejecting the whole array. */
+  if (
+    !Array.isArray(t.rationale) ||
+    !t.rationale.every(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (e: any) =>
+        e && typeof e === 'object' && typeof e.decision === 'string' && typeof e.why === 'string',
+    )
+  ) {
+    if (t.rationale !== undefined) {
+      console.warn(`[postProcess] rationale malformed — defaulting to []`);
+    }
+    t.rationale = [];
+  } else {
+    // Backfill missing summary on valid entries
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const entry of t.rationale as any[]) {
+      if (typeof entry.summary !== 'string') {
+        console.warn(`[postProcess] rationale entry missing summary — defaulting to ""`);
+        entry.summary = '';
+      }
+    }
+  }
+
   return t;
 }
 
@@ -246,7 +272,7 @@ export async function POST(request: Request) {
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-6',
-      max_tokens: 1000,
+      max_tokens: 1500,
       system: SKILL_PROMPT,
       messages: [
         {

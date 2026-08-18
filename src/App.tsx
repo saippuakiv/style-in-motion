@@ -42,9 +42,12 @@ const CELLS = [
 /* Generate-button breathe constants — fixed chrome, never token-driven.
    #d9d4c8 = --shell-disabled; #e2ddd1 is +8% HSL lightness (eye-set:
    perceptible slow pulse against the static white label, never a flicker). */
-const BREATHE_BASE = '#d9d4c8';
-const BREATHE_LIGHT = '#e2ddd1';
-const SHELL_ACCENT = '#e54d2e'; // mirrors --shell-accent; hex needed for Framer Motion color interpolation
+const BREATHE_BASE = '#085203';
+const BREATHE_LIGHT = '#119405';
+const BREATHE_PERIOD_S = 1.4; // single source of truth for the loading cadence
+const DOT_FLOOR = 0.2; // dots never fully vanish (elegant, non-flickery)
+// must match --shell-accent in shell.css (double-write for Framer Motion interpolation)
+const SHELL_ACCENT = '#0C7605';
 
 export function App() {
   const reduceMotion = useReducedMotion();
@@ -87,6 +90,8 @@ export function App() {
 
   useEffect(() => {
     loadFont(DEFAULTS.fontSans);
+    loadFont('Diplomata');
+    loadFont('El Messiri');
   }, []);
 
   const generate = async () => {
@@ -230,17 +235,26 @@ export function App() {
       >
         {/* Header */}
         <div>
-          <div
+          {/* <div
             style={{
-              fontSize: 16,
+              fontSize: 40,
               fontWeight: 700,
-              color: 'var(--shell-text)',
+              color: SHELL_ACCENT,
               marginBottom: 2,
             }}
           >
-            motion-ui
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--shell-text-dim)' }}>
+            <span style={{ fontFamily: 'Diplomata, serif' }}>S</span>tyle{' '}
+            <span style={{ fontFamily: 'El Messiri, sans-serif' }}>i</span>n{' '}
+            <span style={{ fontFamily: 'El Messiri, sans-serif' }}>m</span>otion
+          </div> */}
+          <img src='/title.svg' alt='title' width={290.47} height={37.48} />
+          <div
+            style={{
+              fontSize: 20,
+              fontWeight: 700,
+              color: 'var(--shell-text-dim)',
+            }}
+          >
             prompt &rarr; tokens &rarr; components
           </div>
         </div>
@@ -331,7 +345,7 @@ export function App() {
             transition={
               loading && !reduceMotion
                 ? {
-                    duration: 1.4,
+                    duration: BREATHE_PERIOD_S,
                     ease: 'easeInOut',
                     repeat: Infinity,
                   }
@@ -342,9 +356,7 @@ export function App() {
               padding: 'var(--space-3) 0',
               fontSize: 13,
               fontWeight: 600,
-              backgroundColor: loading
-                ? BREATHE_BASE
-                : SHELL_ACCENT,
+              backgroundColor: loading ? BREATHE_BASE : SHELL_ACCENT,
               color: 'var(--shell-accent-fg)',
               border: 'none',
               borderRadius: 'var(--shell-radius)',
@@ -374,7 +386,37 @@ export function App() {
               transition={{ duration: reduceMotion ? 0 : 0.2 }}
               style={{ gridArea: '1/1' }}
             >
-              Generating{'\u2026'}
+              Generating
+              <span aria-hidden style={{ display: 'inline-flex' }}>
+                {[0, 1, 2].map((i) => (
+                  <motion.span
+                    key={i}
+                    initial={{ opacity: DOT_FLOOR }}
+                    animate={
+                      loading && !reduceMotion
+                        ? { opacity: [DOT_FLOOR, 1, DOT_FLOOR] }
+                        : { opacity: 1 }
+                    }
+                    transition={
+                      loading && !reduceMotion
+                        ? {
+                            duration: BREATHE_PERIOD_S,
+                            ease: 'easeInOut',
+                            repeat: Infinity,
+                            delay: (i * BREATHE_PERIOD_S) / 3,
+                          }
+                        : { duration: 0 }
+                    }
+                    style={{
+                      paddingInline: '0.06em',
+                      fontSize: '1.4em',
+                      lineHeight: 1,
+                    }}
+                  >
+                    .
+                  </motion.span>
+                ))}
+              </span>
             </motion.span>
           </motion.button>
           {error && (
@@ -613,6 +655,70 @@ export function App() {
             />
           </div>
         </section>
+
+        {/* ── Rationale (diagnostic) ── */}
+        {hasGenerated && tokens.rationale.length > 0 && (
+          <section
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 'var(--space-2)',
+            }}
+          >
+            <div
+              style={{
+                fontSize: 9,
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                color: 'var(--shell-text-dim)',
+                fontFamily: 'var(--shell-font-mono)',
+              }}
+            >
+              rationale (diagnostic)
+            </div>
+            <div
+              style={{
+                padding: 'var(--space-2)',
+                border: '1px dashed var(--shell-border)',
+                borderRadius: 'var(--shell-radius-sm)',
+                fontSize: 10,
+                fontFamily: 'var(--shell-font-mono)',
+                color: 'var(--shell-text-muted)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
+              }}
+            >
+              {tokens.rationale.map((r, i) => (
+                <div key={i}>
+                  {r.summary && (
+                    <div
+                      style={{
+                        fontWeight: 600,
+                        fontSize: 11,
+                        color: 'var(--shell-text)',
+                        fontFamily: 'var(--shell-font)',
+                      }}
+                    >
+                      {r.summary}
+                    </div>
+                  )}
+                  <div
+                    style={{
+                      marginTop: r.summary ? 2 : 0,
+                      fontWeight: 500,
+                      color: 'var(--shell-text-muted)',
+                    }}
+                  >
+                    {r.decision}
+                  </div>
+                  <div style={{ marginTop: 1 }}>{r.why}</div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Reset */}
         <button
