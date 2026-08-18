@@ -1,58 +1,87 @@
-# motion-ui
+# Style in Motion
 
-A small, motion-first React component library, plus a Claude skill that
-keeps everything built on top of it consistent.
+A motion-first React component playground. Type a style prompt, and an AI generates a complete set of design tokens — color, typography, radius, and motion parameters — that eight preview components consume live.
 
-Two layers, on purpose:
+Built with Next.js, Framer Motion, and the Anthropic API.
 
-- **The library** (`src/`) shows the craft: a real token system, a shared
-  motion system, and components where the motion is considered, not bolted
-  on. This is the portfolio piece.
-- **The skill** (`.claude/skills/motion-ui/`) makes the design system
-  AI-consumable. With it installed, asking Claude to add a component
-  produces something that uses these exact tokens, springs, and
-  conventions, instead of inventing its own. This is the part that maps to
-  the "make the design system an AI-readable asset" idea.
-
-## Layout
+## How it works
 
 ```
-motion-ui/
-├── src/
-│   ├── tokens.css          design + motion tokens (the system)
-│   ├── motion.ts           springs, easings, variants, reduced-motion
-│   └── components/
-│       └── Switch.tsx      reference motion component
-└── .claude/
-    └── skills/
-        └── motion-ui/
-            ├── SKILL.md        rules + workflow for building on-system
-            └── COMPONENTS.md   inventory + per-component checklist
+Style prompt (e.g. "dark luxury, gold on obsidian")
+  → POST /api/generate
+  → Anthropic API returns design tokens as JSON
+  → Tokens become CSS custom properties + React context
+  → Eight preview components re-render with the new style
 ```
 
-## Using the skill in Claude Code
+The left panel provides a prompt input and manual controls (bezier curve editor, spring sliders, expression sliders) for fine-tuning. The right panel displays the eight live preview components.
 
-The skill is project-scoped: it lives in `.claude/skills/` inside the repo,
-so Claude Code discovers it automatically when you work in this folder. Open
-the repo, then ask for a component:
+## Preview components
 
-> add a Tooltip
+| Component | Motion class |
+|---|---|
+| Command Palette | functional-primary |
+| Context Menu | functional-primary |
+| Toast | split (trigger = functional, entrance = expressive) |
+| Drawer | expression-primary |
+| Skeleton → Content | expression-primary |
+| Multi-step Dialog | expression-primary |
+| Streaming Text | expression-primary |
+| Thinking Indicator | expression-primary |
 
-Claude reads `SKILL.md`, pulls in `tokens.css` and `motion.ts`, looks at
-`Switch.tsx` for the shape, and produces a Tooltip that matches. Try the same
-prompt in a folder without the skill to feel the difference: you get a
-generic tooltip with hard-coded values and no reduced-motion handling.
+**Functional-primary** components stay fast and responsive across all styles — speed is clamped, only texture varies.
 
-## Stack
+**Expression-primary** components fully consume all motion tokens, including time-scaled springs, stagger, and entrance distance.
 
-React + TypeScript + Framer Motion. Imports use `framer-motion`; the package
-is now also published as `motion` (`motion/react`) if you prefer the newer
-name.
+## Design tokens
 
-## Notes
+Each generation produces ~25 tokens across four categories:
 
-- The color and type tokens in `tokens.css` are placeholders. The visual
-  personality is the thing to make your own.
-- Motion principles followed throughout: short durations, spring physics for
-  physical motion, transform/opacity only, exit animations, and
-  reduced-motion as a default rather than an add-on.
+- **Color** — bg, surface, text, muted, border, accent, primary, secondary
+- **Typography** — Google Fonts family, font size scale (x-height compensation)
+- **Radius** — sm / md / lg
+- **Motion** — spring (stiffness, damping, mass), bezier curve, duration scale, entrance distance, stagger delay, reveal granularity (character/word/phrase), thinking posture (breathe/pulse/bounce), overshoot control
+
+A `rationale` array accompanies each generation: structured `{summary, decision, why}` entries explaining the design reasoning behind the token choices.
+
+## Getting started
+
+```bash
+# Install dependencies
+npm install
+
+# Set up your Anthropic API key
+echo "ANTHROPIC_API_KEY=your-key-here" > .env.local
+
+# Start the dev server
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+## Scripts
+
+| Command | Description |
+|---|---|
+| `npm run dev` | Start Next.js dev server |
+| `npm run build` | Production build |
+| `npm run start` | Serve production build |
+| `npx tsc --noEmit` | Type-check without building |
+
+## Tech stack
+
+- **Next.js 14** — app router, API routes
+- **React 18** + **Framer Motion 11** — animation engine
+- **Anthropic API** (Claude) — token generation with a design-judgment system prompt
+- **TypeScript** — strict types for the full token pipeline
+
+## Architecture
+
+Two token scopes, strictly separated:
+
+- **Generated tokens** (`--color-*`, `--radius-*`, `--font-*`, `--duration-*`) — AI-produced, style-dependent, consumed by preview components
+- **Shell tokens** (`--shell-*`) — static chrome for the control panel, never changes with generation
+
+Motion tokens flow through `MotionTokensProvider` (React context). Expression-primary components receive `scaledSpring` (time-scaled: `stiffness/s²`, `damping/s`, preserving damping ratio). Functional-primary components clamp speed (stiffness floor at 300) but pass through texture via a damping ratio band [0.6, 1.05].
+
+A `postProcess` layer in the API route repairs malformed generations (field defaults, numeric clamping, enum fallbacks, near-black floor, critical-damping enforcement) — it never rejects, only repairs.
