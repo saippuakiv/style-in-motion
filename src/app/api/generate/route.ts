@@ -161,7 +161,10 @@ function postProcess(raw: Record<string, any>): Record<string, unknown> {
     !t.rationale.every(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (e: any) =>
-        e && typeof e === 'object' && typeof e.decision === 'string' && typeof e.why === 'string',
+        e &&
+        typeof e === 'object' &&
+        typeof e.decision === 'string' &&
+        typeof e.why === 'string',
     )
   ) {
     if (t.rationale !== undefined) {
@@ -173,7 +176,9 @@ function postProcess(raw: Record<string, any>): Record<string, unknown> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const entry of t.rationale as any[]) {
       if (typeof entry.summary !== 'string') {
-        console.warn(`[postProcess] rationale entry missing summary — defaulting to ""`);
+        console.warn(
+          `[postProcess] rationale entry missing summary — defaulting to ""`,
+        );
         entry.summary = '';
       }
     }
@@ -193,13 +198,19 @@ if (process.env.NODE_ENV !== 'production') {
   {
     const out = postProcess({ bg: '#ffffff' });
     assert(out.springStiffness === 260, 'T1: missing springStiffness filled');
-    assert(out.revealGranularity === 'phrase', 'T1: missing revealGranularity filled');
+    assert(
+      out.revealGranularity === 'phrase',
+      'T1: missing revealGranularity filled',
+    );
   }
 
   // T2: invalid revealGranularity → "word"
   {
     const out = postProcess({ ...ROUTE_DEFAULTS, revealGranularity: 'letter' });
-    assert(out.revealGranularity === 'word', 'T2: bad revealGranularity → word');
+    assert(
+      out.revealGranularity === 'word',
+      'T2: bad revealGranularity → word',
+    );
   }
 
   // T3: invalid thinkingPosture → "pulse"
@@ -238,10 +249,16 @@ if (process.env.NODE_ENV !== 'production') {
 
   // T7: bezier with out-of-range x → clamped
   {
-    const out = postProcess({ ...ROUTE_DEFAULTS, bezier: [-0.1, 1.2, 1.5, 0.9] }) as {
+    const out = postProcess({
+      ...ROUTE_DEFAULTS,
+      bezier: [-0.1, 1.2, 1.5, 0.9],
+    }) as {
       bezier: number[];
     };
-    assert(out.bezier[0] === 0 && out.bezier[2] === 1, 'T7: bezier x clamped to [0,1]');
+    assert(
+      out.bezier[0] === 0 && out.bezier[2] === 1,
+      'T7: bezier x clamped to [0,1]',
+    );
   }
 
   // T8: clean input passes through byte-identical (except noOvershoot already false)
@@ -300,6 +317,7 @@ export async function POST(request: Request) {
     console.log('No JSON object found in response:', raw);
     return NextResponse.json({ error: 'No JSON in response' }, { status: 500 });
   }
+  console.log('Extracted JSON:', raw.slice(start, end + 1));
   const tokens = JSON.parse(raw.slice(start, end + 1));
 
   return NextResponse.json(postProcess(tokens));

@@ -113,14 +113,24 @@ export async function generateTokens(
   return res.json();
 }
 
-/** Load a Google Font by family name. */
+/** Load a Google Font by family name.
+ *  Tries variable-font axis syntax first; falls back to fixed-weight
+ *  request if the API rejects it (non-variable fonts return 400). */
 export function loadFont(name: string): void {
   const id = `gf-${name.replace(/\s+/g, '-')}`;
   if (document.getElementById(id)) return;
+
+  const encoded = encodeURIComponent(name);
+  const variableUrl = `https://fonts.googleapis.com/css2?family=${encoded}:wght@100..900&display=swap`;
+  const fixedUrl = `https://fonts.googleapis.com/css2?family=${encoded}:wght@300;400;500;600;700&display=swap`;
+
   const link = document.createElement('link');
   link.id = id;
   link.rel = 'stylesheet';
-  link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(name)}:wght@100..900&display=swap`;
+  link.href = variableUrl;
+  link.onerror = () => {
+    link.href = fixedUrl;
+  };
   document.head.appendChild(link);
 }
 
